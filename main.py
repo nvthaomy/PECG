@@ -27,11 +27,16 @@ kTkcalmol = kTkJmol/4.184
 """TOPOLOGY"""
 AAtrajs = ['trajectory_xp0.1_N12_f0_V157_LJPME_298K_NVT_Uext0.dcd']
 AAtops = ['AA12_f0_opc_gaff2_w0.13.parm7']
-CGtrajs = []
+stride = 10
 #map AA residue to CG bead name
 nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
                'ATP':'A', 'AHP':'A', 'AP': 'A', 'ATD': 'A-', 'AHD': 'A-', 'AD': 'A-',
                'NTP':'B+', 'NHP':'B+', 'NP': 'B+', 'NTD': 'B', 'NHD': 'B', 'ND': 'B'}
+CGtrajs = []
+#CGtrajs = ['trajectory_xp01_N12_f0_V157_LJPME_298K_NVT_Uext0_mapped.lammpstrj.gz']
+#provide UniqueCGatomTypes if CGtrajs is not an empty list
+UniqueCGatomTypes = ['A','HOH']
+
 #name of molecules in systems
 #must in the right sequence as molecules in the trajectory
 MolNamesList = [['PAA','HOH']]
@@ -69,6 +74,7 @@ MaxIter=None
 SteepestIter=0
 
 """FORCEFIELD"""
+"""fix self interaction of water to value that reproduce the compressibility of pure water, u0 = 18.69kT, B = u0/(4 pi aev**2)**(3/2)"""
 SysLoadFF = False
 ForceFieldFile = 'ff.dat'
 #Excluded volume size for each atom type: a_ev = 1/(number density of this CG atom type)
@@ -79,13 +85,13 @@ BondParams = {('A','A'):[4., 100*kTkcalmol, 'BondA_A']}
 #{('A','A-'):[4., 50*kTkcalmol, 'BondA_A-'], ('A','A'):[4., 50*kTkcalmol, 'BondA_A'],
 #               ('B','B+'):[4., 50*kTkcalmol, 'BondB_B+'], ('B','B'):[4., 50*kTkcalmol, 'BondB_B']}
 #whether to fix a parameter
-IsFixedBond = {('A','A-'):[False,False,True], ('A','A'):[False,False,True],
-               ('B','B+'):[False,False,True], ('B','B'):[False,False,True]}
-
+IsFixedBond = {('A','A-'):[False,False,True], ('A','A'):[False,False,True], ('A-','A-'):[False,False,True],
+               ('B','B+'):[False,False,True], ('B','B'):[False,False,True], ('B+','B+'):[False,False,True]}
 #set cut to be 5 * the largest aev
 Cut = 5 * np.max(aevs_self.values())
 #Initial B
 B0 = 20. * kTkcalmol
+#BHOH_HOH = 18.69 * kTkcalmol
 LJGDist0 = 0.
 LJGSigma = 1.
 LJGEpsilon = 0.
@@ -131,16 +137,22 @@ sim.export.omm.UseTabulated = True
 """---End of inputs---"""
         
 """Map AA trajectories to CG beads and get all unique CG atom types"""
+#map AA trajectory if no CG trajs were provided
 BoxLs = []
-UniqueCGatomTypes = []
-for i, AAtraj in enumerate(AAtrajs):
-    CGatomTypes, AAatomId, CGtraj, BoxL = mappoly.mapTraj(AAtraj,AAtops[i],nameMap)
-    CGtrajs.append(CGtraj)
-    BoxLs.append(BoxL)
-    print "BoxL {}".format(BoxL)
-    UniqueCGatomTypes.append(CGatomTypes)
-UniqueCGatomTypes = np.unique(np.array(UniqueCGatomTypes))
-    
+if len(CGtrajs) == 0:
+    UniqueCGatomTypes = []
+    for i, AAtraj in enumerate(AAtrajs):
+        CGatomTypes, AAatomId, CGtraj, BoxL = mappoly.mapTraj(AAtraj,AAtops[i],nameMap, stride = stride)
+        CGtrajs.append(CGtraj)
+        BoxLs.append(BoxL)
+        print "BoxL {}".format(BoxL)
+        UniqueCGatomTypes.append(CGatomTypes)
+    UniqueCGatomTypes = np.unique(np.array(UniqueCGatomTypes))
+else:
+    for i, CGtraj in enumerate(CGtrajs):
+        CGtraj = pickleTraj(CGtraj)
+        CGtrajs[i] = CGtraj
+        BoxLs.append(CGtraj.FrameData['BoxL'])    
 """Calculate forcefield parameters. This will likely to change"""
 #get mixed term of aev and calculate kappa parameter for LJGauss, k = 1/(4aev^2)
 #Born radii = a_Coul * sqrt(pi)
@@ -159,8 +171,15 @@ for i in range(len(UniqueCGatomTypes)):
         ks.update({(atom1,atom2): 1/(4*amean**2)})
         #add param if this pair has not been added to param dictionary
         if not (atom1,atom2) in LJGaussParams.keys() and not (atom2,atom1) in LJGaussParams.keys():
-            LJGaussParams.update({(atom1,atom2): [B0, kappa, LJGDist0, Cut, LJGSigma, LJGEpsilon, 'LJGauss{}_{}'.format(atom1,atom2)]})
-            IsFixedLJGauss.update({(atom1,atom2): [FixedB, FixedKappa, FixedDist0, FixedSigma, FixedEpsilon, True]})
+#            if (atom1,atom2) == ('HOH','HOH'):
+#                LJGaussParams.update({(atom1,atom2): [BHOH_HOH, kappa, LJGDist0, Cut, LJGSigma, LJGEpsilon, 'LJGauss{}_{}'.format(atom1,atom2)]})
+#                IsFixedLJGauss.update({(atom1,atom2): [True, True, FixedDist0, FixedSigma, FixedEpsilon, True]})
+#            else:
+             LJGaussParams.update({(atom1,atom2): [B0, kappa, LJGDist0, Cut, LJGSigma, LJGEpsilon, 'LJGauss{}_{}'.format(atom1,atom2)]})
+             IsFixedLJGauss.update({(atom1,atom2): [FixedB, FixedKappa, FixedDist0, FixedSigma, FixedEpsilon, True]})
+f = open('aevs.txt','w')
+f.write('{}'.format(aevs))
+f.close()
 
 #SmearedCoulParams: (atom1,atom2): [BornA, Cut, Shift, FixedCoef,FixedBornA, Label]
 BornAs = {}
@@ -197,7 +216,7 @@ for i, MolTypesDict in enumerate(MolTypesDicts):
     MolNames = MolNamesList[i]
     Temp = TempSet[i]
     SysName = Name+str(i)
-    CGtraj = pickleTraj(CGtrajs[i])
+    CGtraj = CGtrajs[i]
     BoxL = BoxLs[i] 
     if UseNPT:
         Pres = PresSet[i]

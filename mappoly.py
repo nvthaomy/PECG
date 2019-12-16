@@ -31,15 +31,15 @@ def getMap(traj, top, nameMap):
             
     return AAatomId, CGatomTypes, AAres
 
-def convertTraj(traj, top, outTrajExt = '.lammpstrj'):
+def convertTraj(traj, top, stride = 1, outTrajExt = '.lammpstrj'):
     """convert trajectory to lammpstraj"""
     import mdtraj as md
-    outTraj = ''.join(traj.split('.')[:-1]) + outTrajExt
-    traj = md.load(traj, top = top)
+    outTraj = '.'.join(traj.split('.')[:-1]) + outTrajExt
+    traj = md.load(traj, top = top, stride = stride)
     traj.save(outTraj)
     return outTraj
 
-def mapTraj(traj, top, nameMap):
+def mapTraj(traj, top, nameMap, stride=1):
     import sim
     """ CGatomTypes: 1 by n list of CG atom types
         AAatomID: n by x list of indices of AA atoms in CG beads"""
@@ -54,8 +54,7 @@ def mapTraj(traj, top, nameMap):
         this_Map = sim.atommap.AtomMap(Atoms1 = Atoms1, Atom2 = Atom2)
         Map += [this_Map]
     
-    if traj.split('.')[-1] != 'lammpstrj':
-        traj = convertTraj(traj, top)
+    traj = convertTraj(traj, top, stride = stride, outTrajExt = '.lammpstrj')
     outTraj = traj.split('.lammpstrj')[0] + '_mapped.lammpstrj.gz'    
     
     # ===== read AA traj =====
@@ -65,7 +64,7 @@ def mapTraj(traj, top, nameMap):
     
     # ===== write out new mapped traj =====
     print("\n ===== Mapping and Writing Trajectory =====")
-    MappedTrj = sim.traj.Mapped(Trj, Map, AtomNames = CGatomTypes)
+    MappedTrj = sim.traj.Mapped(Trj, Map, AtomNames = CGatomTypes, BoxL = BoxL)
     #MappedTrj = sim.traj.Mapped(Trj, Map, AtomNames = AtomTypes, BoxL = BoxL)
     
     # ===== convert to lammps =====
@@ -74,19 +73,22 @@ def mapTraj(traj, top, nameMap):
     print("\nCG Atom\tcount:")
     for i, atom in enumerate(AtomTypes):
         print('%s\t%i'%(atom,counts[i]))
-    return  CGatomTypes, AAatomId, outTraj, BoxL 
+    return  CGatomTypes, AAatomId, MappedTrj, BoxL 
     
 if __name__ == "__main__":
     import argparse as ap
     parser = ap.ArgumentParser(description="mapping AA trajectory")
     parser.add_argument('traj', type=str, help = "AA trajectory")
     parser.add_argument('top', type=str, help = "AA topology")
+    parser.add_argument('-stride', type=int, help = "stide", default = 1)
     args = parser.parse_args()
     
     traj = sys.argv[1]
     top = sys.argv[2]
+    stride = args.stride
+
     #dictionary defines: {AAres:[CGatomTypes]}
     nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH', 
                'ATP':'A', 'AHP':'A', 'AP': 'A', 'ATD': 'A-', 'AHD': 'A-', 'AD': 'A-',
                'NTP':'B+', 'NHP':'B+', 'NP': 'B+', 'NTD': 'B', 'NHD': 'B', 'ND': 'B'}
-    mappedTraj = mapTraj(traj, top, nameMap)
+    mappedTraj = mapTraj(traj, top, nameMap, stride)

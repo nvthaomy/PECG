@@ -34,7 +34,8 @@ def CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsPro
               
     Sys.ScaleBox(Sys.BoxL) # scale the system by the box
     Opt = OptClass(Sys, Map, Beta = 1./Sys.TempSet, Traj = CGtraj, FilePrefix = '{}'.format(Sys.Name),
-                        SaveLoadArgData = True, TempFileDir = os.getcwd())                        
+                        SaveLoadArgData = True, TempFileDir = os.getcwd(), UseTarHists=False)                        
+    Opt.ConstrainNeutralCharge()
     # Set run times for optimization objects.
     # Useful for dilute systems versus concentration systems.    
     if StepScale:
