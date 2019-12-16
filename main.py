@@ -110,7 +110,7 @@ FixedCoef = False
 FixedBornA = True
 IsFixedCharge = True
 #Ewald params
-EwaldParams = {'ExcludeBondOrd': 3, 'Cut': Cut, 'Shift': True, 'Label': 'EW'}
+EwaldParams = {'ExcludeBondOrd': 0, 'Cut': Cut, 'Shift': True, 'Label': 'EW'}
 
 #External Potential
 UConst = 0.*kTkcalmol
