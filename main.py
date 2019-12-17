@@ -52,6 +52,11 @@ Name = 'PAA'
 dt = 0.005 #ps
 TempSet = [298.15] #K
 PresSet = [] #enter values to enable NPT
+
+PresSet = np.array(PresSet)
+PresSet *= 101325. #joules/m**3
+PresSet *= (10.**-10.)**3. * 0.000239006 *6.022e23 #kcal/mol/A**3
+
 IntParams = {'TimeStep': dt, 'LangevinGamma': 1/(100*dt)}
 
 """SREL OPT"""
