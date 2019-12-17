@@ -77,6 +77,7 @@ def CreateForceField(Sys, IsCharged, AtomTypes, LJGaussParams, IsFixedLJGauss, S
         for AtomName in ExtPot['AtomTypes']:
             AtomTypesInExt.append(AtomTypes[AtomName])
         FilterExt = sim.atomselect.PolyFilter(Filters = AtomTypesInExt)
+        print('Filter for Uext {}'.format(FilterExt))
         P = sim.potential.ExternalSinusoid(Sys, Filter=FilterExt, UConst=ExtPot["UConst"], NPeriods=ExtPot["NPeriods"], 
                                            PlaneAxis=ExtPot["PlaneAxis"], PlaneLoc=ExtPot["PlaneLoc"], Label="ExtSin")
         ForceField.append(P)
