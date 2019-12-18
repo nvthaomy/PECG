@@ -23,7 +23,11 @@ TempRef = 298.15
 kT = kB*TempRef
 kTkJmol = kT/1000.0*6.022e23
 kTkcalmol = kTkJmol/4.184
-
+Units = sim.units.DimensionlessUnits #sim.units.AtomicUnits
+#dimensionless scales:
+# length: a_water = 3.1 A
+# energy: kT
+# pressure: kT/a_water**3
 """TOPOLOGY"""
 AAtrajs = ['trajectory_xp0.1_N12_f0_V157_LJPME_298K_NVT_Uext0.dcd']
 AAtops = ['AA12_f0_opc_gaff2_w0.13.parm7']
@@ -49,18 +53,18 @@ charges = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0,'A-': -1., 'B': 0., 'B-': 1.
 Name = 'PAA'
 
 """INTEGRATION PARAMS"""
-dt = 0.005 #ps
-TempSet = [298.15] #K
+#real units: dt (ps), temp (K), pressure (atm)
+dt = 0.001 
+TempSet = [1.]
 PresSet = [] #enter values to enable NPT
 
-PresSet = np.array(PresSet, dtype = float)
-PresSet *= 101325. #joules/m**3
-PresSet *= (10.**-10.)**3. * 0.000239006 *6.022e23 #kcal/mol/A**3
+PresSet = np.array(PresSet)
+#PresSet *= 101325. #joules/m**3
+#PresSet *= (10.**-10.)**3. * 0.000239006 *6.022e23 #kcal/mol/A**3
 
 IntParams = {'TimeStep': dt, 'LangevinGamma': 1/(100*dt)}
 
 """SREL OPT"""
-
 UseLammps = True
 UseOMM = False
 UseSim = False
@@ -83,10 +87,10 @@ SteepestIter=0
 SysLoadFF = False
 ForceFieldFile = 'ff.dat'
 #Excluded volume size for each atom type: a_ev = 1/(number density of this CG atom type)
-aevs_self = {'Na+': 1.8, 'Cl-': 1.8, 'HOH': 3.1, 'A': 4.5,'A-': 4.5, 'B': 4.5, 'B-': 4.5} #Angstrom
+aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4.5/3.1, 'B-': 4.5/3.1}
 aCoul_self = aevs_self.copy()
 #BondParams: (atom1,atom2):[Dist0,FConst,Label], FConts = kcal/mol/Angstrom**2
-BondParams = {('A','A'):[4., 100*kTkcalmol, 'BondA_A']}
+BondParams = {('A','A'):[1., 1000, 'BondA_A']}
 #{('A','A-'):[4., 50*kTkcalmol, 'BondA_A-'], ('A','A'):[4., 50*kTkcalmol, 'BondA_A'],
 #               ('B','B+'):[4., 50*kTkcalmol, 'BondB_B+'], ('B','B'):[4., 50*kTkcalmol, 'BondB_B']}
 #whether to fix a parameter
@@ -95,8 +99,8 @@ IsFixedBond = {('A','A-'):[False,False,True], ('A','A'):[False,False,True], ('A-
 #set cut to be 5 * the largest aev
 Cut = 5 * np.max(aevs_self.values())
 #Initial B
-B0 = 20. * kTkcalmol
-#BHOH_HOH = 18.69 * kTkcalmol
+B0 = 20. 
+#BHOH_HOH = 18.69 
 LJGDist0 = 0.
 LJGSigma = 1.
 LJGEpsilon = 0.
@@ -118,7 +122,7 @@ IsFixedCharge = True
 EwaldParams = {'ExcludeBondOrd': 0, 'Cut': Cut, 'Shift': True, 'Label': 'EW'}
 
 #External Potential
-UConst = 0.*kTkcalmol
+UConst = 0.
 ExtPot = {"UConst": UConst, "NPeriods": 1, "PlaneAxis": 2, "PlaneLoc": 0., 'AtomTypes':['HOH']}
 
 # Default Simulation Package Settings
@@ -233,7 +237,7 @@ for i, MolTypesDict in enumerate(MolTypesDicts):
         StepScale = None
     #create system and add forcefield, then create optimizer for each system
     Sys = system.CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
-                              LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, ExtPot)
+                              LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, ExtPot, Units = Units)
     Opt = optimizer.CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty)
 
     Opts.append(Opt)
