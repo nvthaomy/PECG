@@ -1,1 +1,5 @@
+test_PAAf0.5_implicitSol/
+test_PAAf0.5_implicitSol_NPT/
+test_PAAf0.5_implicitSol_NVT/
+test*
 submit.sh
