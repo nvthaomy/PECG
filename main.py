@@ -123,7 +123,7 @@ FixedDist0 = True
 FixedSigma = True
 FixedEpsilon = True
 #Pair spline
-PplineParams = {}
+PSplineParams = {}
 PSplineNKnot = 10
 NonbondEneSlopeInit = '1.kTperA'
 #Smeared Coul
@@ -140,6 +140,7 @@ UConst = 0.
 ExtPot = {"UConst": UConst, "NPeriods": 1, "PlaneAxis": 2, "PlaneLoc": 0., 'AtomTypes':['HOH']}
 
 # Default Simulation Package Settings
+sim.export.lammps.NeighOne = 8000
 sim.export.lammps.UseTable2 = True
 sim.export.lammps.InnerCutoff = 1.e-6
 sim.export.lammps.NPairPotentialBins = 1000
