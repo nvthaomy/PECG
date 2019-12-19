@@ -46,7 +46,7 @@ def CreateForceField(Sys, IsCharged, AtomTypes, LJGaussParams, IsFixedLJGauss, S
             P = sim.potential.PairSpline(Sys, Filter = Filter, Cut = params[1],
                                            NKnot = params[0], Label = params[3],
                                            NonbondEneSlopeInit = params[2])
-   
+            ForceField.append(P)
     elif UseLJGauss:
         #Gaussian Pair
         for (atom1name,atom2name), params in sorted(LJGaussParams.items()):
@@ -63,7 +63,7 @@ def CreateForceField(Sys, IsCharged, AtomTypes, LJGaussParams, IsFixedLJGauss, S
             P.Param.Dist0.Fixed = fixed[2]
             P.Param.Sigma.Fixed = fixed[4]
             P.Param.Epsilon.Fixed = fixed[5]
-    ForceField.append(P)
+            ForceField.append(P)
 
     if IsCharged:
         #Ewald
