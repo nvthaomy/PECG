@@ -9,7 +9,7 @@ import sim
 print(sim)
 
 def CreateForceField(Sys, IsCharged, AtomTypes, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams,
-                              BondParams, IsFixedBond, ExtPot):
+                              BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot):
     """BondParams: (atom1,atom2):[Dist0,FConst,Label]
        IsFixedBond: (atom1,atom2):[Dist0,FConst,Label], type = boolean
        LJGaussParams: (atom1,atom2):[B, kappa, Dist0, Cut, Sigma, Epsilon, Label ]
@@ -36,22 +36,34 @@ def CreateForceField(Sys, IsCharged, AtomTypes, LJGaussParams, IsFixedLJGauss, S
         P.Param.Dist0.Fixed = fixed[0]
         P.Param.FConst.Fixed = fixed[1]
         ForceField.append(P)
-    #Gaussian Pair
-    for (atom1name,atom2name), params in sorted(LJGaussParams.items()):
-        print('Adding {}\nCutoff {}'.format(params[6],params[3]))
-        atom1 = AtomTypes[atom1name]
-        atom2 = AtomTypes[atom2name]
-        fixed = IsFixedLJGauss[(atom1name,atom2name)]
-        Filter = sim.atomselect.PolyFilter(Filters = [atom1, atom2])
-        P = sim.potential.LJGaussian(Sys, Filter = Filter, B = params[0], Kappa = params[1],
+    if not UseLJGauss:
+        #Spline Pair
+        for (atom1name,atom2name), params in sorted(PSplineParams.items()):
+            print('Adding {}\nCutoff {}'.format(params[3],params[1]))
+            atom1 = AtomTypes[atom1name]
+            atom2 = AtomTypes[atom2name]
+            Filter = sim.atomselect.PolyFilter(Filters = [atom1, atom2])
+            sim.potential.PairSpline(Sys, Filter = Filter, Cut = params[1],
+                                           NKnot = params[0], Label = params[3],
+                                           NonbondEneSlopeInit = params[2])
+
+    elif UseLJGauss:
+        #Gaussian Pair
+        for (atom1name,atom2name), params in sorted(LJGaussParams.items()):
+            print('Adding {}\nCutoff {}'.format(params[6],params[3]))
+            atom1 = AtomTypes[atom1name]
+            atom2 = AtomTypes[atom2name]
+            fixed = IsFixedLJGauss[(atom1name,atom2name)]
+            Filter = sim.atomselect.PolyFilter(Filters = [atom1, atom2])
+            P = sim.potential.LJGaussian(Sys, Filter = Filter, B = params[0], Kappa = params[1],
                              Dist0 = params[2], Cut = params[3], Sigma = params[4], Epsilon = params[5], 
                              Label = params[6])
-        P.Param.B.Fixed = fixed[0]
-        P.Param.Kappa.Fixed = fixed[1]
-        P.Param.Dist0.Fixed = fixed[2]
-        P.Param.Sigma.Fixed = fixed[4]
-        P.Param.Epsilon.Fixed = fixed[5]
-        ForceField.append(P)
+            P.Param.B.Fixed = fixed[0]
+            P.Param.Kappa.Fixed = fixed[1]
+            P.Param.Dist0.Fixed = fixed[2]
+            P.Param.Sigma.Fixed = fixed[4]
+            P.Param.Epsilon.Fixed = fixed[5]
+            ForceField.append(P)
 
     if IsCharged:
         #Ewald

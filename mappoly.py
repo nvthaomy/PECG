@@ -31,18 +31,23 @@ def getMap(traj, top, nameMap):
             
     return AAatomId, CGatomTypes, AAres
 
-def convertTraj(traj, top, stride = 1, outTrajExt = '.lammpstrj'):
-    """convert trajectory to lammpstraj"""
+def convertTraj(traj, top, lengthScale = 1., stride = 1, outTrajExt = '.lammpstrj'):
+    """convert trajectory to a specified format and scale box with lengthScale"""
     import mdtraj as md
     outTraj = '.'.join(traj.split('.')[:-1]) + outTrajExt
     traj = md.load(traj, top = top, stride = stride)
+    if lengthScale != 1.:
+        print('Scaling positions and box size by 1/{}'.format(lengthScale))
+    traj.xyz /= lengthScale
+    traj.unitcell_lengths /= lengthScale
     traj.save(outTraj)
     return outTraj
 
-def mapTraj(traj, top, nameMap, stride=1):
+def mapTraj(traj, top, nameMap, lengthScale, stride=1):
     import sim
     """ CGatomTypes: 1 by n list of CG atom types
-        AAatomID: n by x list of indices of AA atoms in CG beads"""
+        AAatomID: n by x list of indices of AA atoms in CG beads
+        lengthScale (nanometer): divide positions and box dimensions by this scale, for conversion between real and dimensionless units"""
     AAatomId, CGatomTypes, AAres = getMap(traj,top,nameMap)
     AtomTypes, counts = np.unique(CGatomTypes, return_counts = True)
     # ===== create mapped object =====
@@ -54,11 +59,12 @@ def mapTraj(traj, top, nameMap, stride=1):
         this_Map = sim.atommap.AtomMap(Atoms1 = Atoms1, Atom2 = Atom2)
         Map += [this_Map]
     
-    traj = convertTraj(traj, top, stride = stride, outTrajExt = '.lammpstrj')
+    print("\n ===== Converting AA traj to lammpstrj format  =====")
+    traj = convertTraj(traj, top, lengthScale = lengthScale, stride = stride, outTrajExt = '.lammpstrj')
     outTraj = traj.split('.lammpstrj')[0] + '_mapped.lammpstrj.gz'    
     
     # ===== read AA traj =====
-    print("\n ===== Reading AA Traj =====")
+    print("\n ===== Reading scaled AA Traj =====")
     Trj = pickleTraj(traj)
     BoxL = Trj.FrameData['BoxL']
     

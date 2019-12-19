@@ -6,7 +6,8 @@ Created on Thu Dec 12 18:11:03 2019
 @author: my
 """
 import sim, pickleTraj
-import mappoly_implicit as mappoly
+#import mappoly_implicit as mappoly
+import mappoly
 import system, optimizer
 import numpy as np
 """assume all atom indices in trajectory follow the same order as definition of MolTypes, NMons, and NMols
@@ -25,7 +26,7 @@ kT = kB*TempRef
 kTkJmol = kT/1000.0*6.022e23
 kTkcalmol = kTkJmol/4.184
 Units = sim.units.DimensionlessUnits #sim.units.AtomicUnits
-lengthScale  = 3.1 #A
+lengthScale  = 3.1 # = CG length scale/ AA length scale = 3.1 A/ 1 A
 if Units == sim.units.DimensionlessUnits:
     lengthScale = lengthScale
 else:
@@ -35,9 +36,9 @@ else:
 # energy: kT
 # pressure: kT/a_water**3
 """TOPOLOGY"""
-AAtrajs = ['trajectory_xp0.1_N12_f1_V157_LJPME_298K_NVT_Uext0.dcd']
-AAtops = ['AA12_f1_opc_gaff2_w0.13.parm7']
-stride = 2 
+AAtrajs = ['traj_f0.5_test.dcd']
+AAtops = ['AA12_f0.5_opc_gaff2_w0.13.parm7']
+stride = 5 
 #map AA residue to CG bead name
 nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
                'ATP':'A', 'AHP':'A', 'AP': 'A', 'ATD': 'A-', 'AHD': 'A-', 'AD': 'A-',
@@ -45,15 +46,15 @@ nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
 CGtrajs = []
 #CGtrajs = ['trajectory_xp01_N12_f0_V157_LJPME_298K_NVT_Uext0_mapped.lammpstrj.gz']
 #provide UniqueCGatomTypes if CGtrajs is not an empty list
-UniqueCGatomTypes = ['A-','Na+']
+UniqueCGatomTypes = ['A','A-','Na+']
 
 #name of molecules in systems
 #must in the right sequence as molecules in the trajectory
 MolNamesList = [['PAA','Na+']]
 # nSys x molecule types   
-MolTypesDicts = [{'PAA':['A-','A-']*6,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
+MolTypesDicts = [{'PAA':['A-','A']*6,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
 # number of molecules for each molecule type, nSys x molecule types
-NMolsDicts = [{'PAA':15,'Na+':180,'Cl-':0,'HOH':0}]
+NMolsDicts = [{'PAA':15,'Na+':90,'Cl-':0,'HOH':4649}]
 charges = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0,'A-': -1., 'B': 0., 'B-': 1.}
 
 Name = 'PAA'
@@ -93,13 +94,13 @@ SteepestIter=0
 SysLoadFF = False
 ForceFieldFile = 'ff.dat'
 #use spline or LJGauss for pair?
-UseLJGauss = False
+UseLJGauss = True
 
 #Excluded volume size for each atom type: a_ev = 1/(number density of this CG atom type)
-aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1}# 'B': 4.5/3.1, 'B-': 4.5/3.1}
+aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4.5/3.1, 'B-': 4.5/3.1}
 aCoul_self = aevs_self.copy()
 #BondParams: (atom1,atom2):[Dist0,FConst,Label], FConts = kcal/mol/Angstrom**2
-BondParams = {('A-','A-'):[1., 1000, 'BondA-_A-']}
+BondParams = {('A','A-'):[1., 1000, 'BondA_A-']}
 #{('A','A-'):[4., 50*kTkcalmol, 'BondA_A-'], ('A','A'):[4., 50*kTkcalmol, 'BondA_A'],
 #               ('B','B+'):[4., 50*kTkcalmol, 'BondB_B+'], ('B','B'):[4., 50*kTkcalmol, 'BondB_B']}
 #whether to fix a parameter
@@ -122,7 +123,7 @@ FixedDist0 = True
 FixedSigma = True
 FixedEpsilon = True
 #Pair spline
-PSplineParams = {}
+PplineParams = {}
 PSplineNKnot = 10
 NonbondEneSlopeInit = '1.kTperA'
 #Smeared Coul
@@ -164,17 +165,17 @@ BoxLs = []
 if len(CGtrajs) == 0:
     UniqueCGatomTypes = []
     for i, AAtraj in enumerate(AAtrajs):
-        CGatomTypes, AAatomId, CGtraj, BoxL = mappoly.mapTraj(AAtraj,AAtops[i],nameMap, stride = stride)
+        CGatomTypes, AAatomId, CGtraj, BoxL = mappoly.mapTraj(AAtraj,AAtops[i],nameMap, lengthScale, stride = stride)
         CGtrajs.append(CGtraj)
-        BoxLs.append(BoxL/lengthScale)
-        print "BoxL {}".format(BoxL/lengthScale)
+        BoxLs.append(BoxL)
+        print "BoxL {}".format(BoxL)
         UniqueCGatomTypes.append(CGatomTypes)
     UniqueCGatomTypes = np.unique(np.array(UniqueCGatomTypes))
 else:
     for i, CGtraj in enumerate(CGtrajs):
         CGtraj = pickleTraj(CGtraj)
         CGtrajs[i] = CGtraj
-        BoxLs.append(CGtraj.FrameData['BoxL']/lengthScale)    
+        BoxLs.append(CGtraj.FrameData['BoxL'])    
 """Calculate forcefield parameters. This will likely to change"""
 #get mixed term of aev and calculate kappa parameter for LJGauss, k = 1/(4aev^2)
 #Born radii = a_Coul * sqrt(pi)
