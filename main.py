@@ -36,9 +36,9 @@ else:
 # energy: kT
 # pressure: kT/a_water**3
 """TOPOLOGY"""
-AAtrajs = ['traj_f0.5_test.dcd']
-AAtops = ['AA12_f0.5_opc_gaff2_w0.13.parm7']
-stride = 5 
+AAtrajs = ['trajectory_xp0.1_N12_f1_V157_LJPME_298K_NVT_Uext0.dcd']
+AAtops = ['AA12_f1_opc_gaff2_w0.13.parm7']
+stride = 10 
 #map AA residue to CG bead name
 nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
                'ATP':'A', 'AHP':'A', 'AP': 'A', 'ATD': 'A-', 'AHD': 'A-', 'AD': 'A-',
@@ -46,15 +46,15 @@ nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
 CGtrajs = []
 #CGtrajs = ['trajectory_xp01_N12_f0_V157_LJPME_298K_NVT_Uext0_mapped.lammpstrj.gz']
 #provide UniqueCGatomTypes if CGtrajs is not an empty list
-UniqueCGatomTypes = ['A','A-','Na+']
+UniqueCGatomTypes = ['A-','Na+','HOH']
 
 #name of molecules in systems
 #must in the right sequence as molecules in the trajectory
-MolNamesList = [['PAA','Na+']]
+MolNamesList = [['PAA','Na+','HOH']]
 # nSys x molecule types   
-MolTypesDicts = [{'PAA':['A-','A']*6,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
+MolTypesDicts = [{'PAA':['A-','A-']*6,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
 # number of molecules for each molecule type, nSys x molecule types
-NMolsDicts = [{'PAA':15,'Na+':90,'Cl-':0,'HOH':4649}]
+NMolsDicts = [{'PAA':15,'Na+':180,'Cl-':0,'HOH':4610}]
 charges = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0,'A-': -1., 'B': 0., 'B-': 1.}
 
 Name = 'PAA'
@@ -77,8 +77,8 @@ UseOMM = False
 UseSim = False
 ScaleRuns = True
 StepScales = [] #set to empty if don't want to scale steps
-StepsEquil = 10000
-StepsProd = 200000
+StepsEquil =10000
+StepsProd = 100000
 StepsStride = 100
 WeightSysByNMol = False
 WeightSysByNAtom = True
@@ -100,14 +100,14 @@ UseLJGauss = True
 aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4.5/3.1, 'B-': 4.5/3.1}
 aCoul_self = aevs_self.copy()
 #BondParams: (atom1,atom2):[Dist0,FConst,Label], FConts = kcal/mol/Angstrom**2
-BondParams = {('A','A-'):[1., 1000, 'BondA_A-']}
+BondParams = {('A-','A-'):[1., 2000, 'BondA-_A-']}
 #{('A','A-'):[4., 50*kTkcalmol, 'BondA_A-'], ('A','A'):[4., 50*kTkcalmol, 'BondA_A'],
 #               ('B','B+'):[4., 50*kTkcalmol, 'BondB_B+'], ('B','B'):[4., 50*kTkcalmol, 'BondB_B']}
 #whether to fix a parameter
 IsFixedBond = {('A','A-'):[False,False,True], ('A','A'):[False,False,True], ('A-','A-'):[False,False,True],
                ('B','B+'):[False,False,True], ('B','B'):[False,False,True], ('B+','B+'):[False,False,True]}
 #set cut to be 5 * the largest aev
-Cut = 5 * np.max(aevs_self.values())
+Cut = 8.5 #5 * np.max(aevs_self.values())
 #Initial B
 B0 = 20. 
 BHOH_HOH = 18.69 
@@ -128,12 +128,13 @@ PSplineNKnot = 10
 NonbondEneSlopeInit = '1.kTperA'
 #Smeared Coul
 SmearedCoulParams = {}
+EwaldCoef = 2.4
 SCoulShift = True
-FixedCoef = False
+FixedCoef = True
 FixedBornA = True
 IsFixedCharge = True
 #Ewald params
-EwaldParams = {'ExcludeBondOrd': 0, 'Cut': Cut, 'Shift': True, 'Label': 'EW'}
+EwaldParams = {'ExcludeBondOrd': 0, 'Cut': Cut, 'Shift': True, 'Label': 'EW', 'Coef': EwaldCoef, 'EwaldNAtom': None, 'FixedCoef': FixedCoef}
 
 #External Potential
 UConst = 0.
@@ -146,7 +147,7 @@ sim.export.lammps.InnerCutoff = 1.e-6
 sim.export.lammps.NPairPotentialBins = 1000
 sim.export.lammps.LammpsExec = 'lmp_omp'
 sim.export.lammps.UseLangevin = True
-sim.export.lammps.OMP_NumThread = 5
+sim.export.lammps.OMP_NumThread = 8 
 sim.export.lammps.TableInterpolationStyle = 'spline' # More robust than spline for highly CG-ed systems
 sim.srel.optimizetrajlammps.LammpsDelTempFiles = False
 sim.srel.optimizetrajlammps.UseLangevin = True
@@ -213,7 +214,7 @@ else:
             atom2 = UniqueCGatomTypes[j]
             if not (atom1,atom2) in PSplineParams.keys() and not (atom2,atom1) in PSplineParams.keys():
                 PSplineParams.update({(atom1,atom2): [PSplineNKnot, Cut, NonbondEneSlopeInit, 'PSpline{}_{}'.format(atom1,atom2)]})
-#SmearedCoulParams: (atom1,atom2): [BornA, Cut, Shift, FixedCoef,FixedBornA, Label]
+#SmearedCoulParams: (atom1,atom2): [BornA, Cut, Shift, FixedCoef,FixedBornA, Label, Coef]
 BornAs = {}
 for i in range(len(UniqueCGatomTypes)):
     for j in range(len(UniqueCGatomTypes)):
@@ -226,7 +227,7 @@ for i in range(len(UniqueCGatomTypes)):
         BornAs.update({(atom1,atom2): BornA})
         if all([charges[atom1], charges[atom2]]) != 0.:
             if not (atom1,atom2) in SmearedCoulParams.keys() and not (atom2,atom1) in SmearedCoulParams.keys():
-                SmearedCoulParams.update({(atom1,atom2):[BornA, Cut, SCoulShift, FixedCoef, FixedBornA, 'SmearCoul{}_{}'.format(atom1,atom2)]})    
+                SmearedCoulParams.update({(atom1,atom2):[BornA, Cut, SCoulShift, FixedCoef, FixedBornA, 'SmearCoul{}_{}'.format(atom1,atom2), EwaldCoef]})    
 
 """Create systems and optimizers"""
 Systems = []

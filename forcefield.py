@@ -69,7 +69,9 @@ def CreateForceField(Sys, IsCharged, AtomTypes, LJGaussParams, IsFixedLJGauss, S
         #Ewald
         print('Adding Ewald')
         P = sim.potential.Ewald(Sys, ExcludeBondOrd = EwaldParams['ExcludeBondOrd'] , 
-                         Cut = EwaldParams['Cut'], Shift = EwaldParams['Shift'], Label = EwaldParams['Label'])
+                         Cut = EwaldParams['Cut'], Shift = EwaldParams['Shift'], Label = EwaldParams['Label'], Coef = EwaldParams['Coef'], EwaldNAtom = EwaldParams['EwaldNAtom'],
+                         FixedCoef = EwaldParams['FixedCoef'])
+        print('Number of atoms to loop through in Ewald {}'.format(P.EwaldNAtom))
         ForceField.append(P)
     
         #Smeared Coulomb
@@ -79,7 +81,7 @@ def CreateForceField(Sys, IsCharged, AtomTypes, LJGaussParams, IsFixedLJGauss, S
             atom2 = AtomTypes[atom2name]
             Filter = sim.atomselect.PolyFilter(Filters = [atom1, atom2])
             P = sim.potential.SmearedCoulombEwCorr(Sys, Filter = Filter, BornA = params[0], Cut = params[1], Shift = params[2],
-                                                FixedCoef = params[3], FixedBornA = params[4], Label = params[5])
+                                                FixedCoef = params[3], FixedBornA = params[4], Label = params[5], Coef = params[6])
             ForceField.append(P)
         
     if UseExternal:
