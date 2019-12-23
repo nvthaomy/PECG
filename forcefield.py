@@ -8,7 +8,7 @@ Created on Fri Dec 13 10:17:26 2019
 import sim
 print(sim)
 
-def CreateForceField(Sys, IsCharged, AtomTypes, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams,
+def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams,
                               BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot):
     """BondParams: (atom1,atom2):[Dist0,FConst,Label]
        IsFixedBond: (atom1,atom2):[Dist0,FConst,Label], type = boolean
@@ -55,15 +55,27 @@ def CreateForceField(Sys, IsCharged, AtomTypes, LJGaussParams, IsFixedLJGauss, S
             atom2 = AtomTypes[atom2name]
             fixed = IsFixedLJGauss[(atom1name,atom2name)]
             Filter = sim.atomselect.PolyFilter(Filters = [atom1, atom2])
-            P = sim.potential.LJGaussian(Sys, Filter = Filter, B = params[0], Kappa = params[1],
+            try:
+                NGauss = NGaussDicts[(atom1name,atom2name)]
+            except:
+                NGauss = NGaussDicts[(atom2name,atom1name)]
+            #adding multiple Gaussians
+            for i in range(NGauss): 
+                Label = params[6] + '{}'.format(i)
+                P = sim.potential.LJGaussian(Sys, Filter = Filter, B = params[0], Kappa = params[1],
                              Dist0 = params[2], Cut = params[3], Sigma = params[4], Epsilon = params[5], 
-                             Label = params[6])
-            P.Param.B.Fixed = fixed[0]
-            P.Param.Kappa.Fixed = fixed[1]
-            P.Param.Dist0.Fixed = fixed[2]
-            P.Param.Sigma.Fixed = fixed[4]
-            P.Param.Epsilon.Fixed = fixed[5]
-            ForceField.append(P)
+                             Label = Label)
+                P.Param.B.Fixed = fixed[0]
+                #set bound of B, repulsive if i is even, attractive if i is odd
+                if i%2 == 0:
+                    P.Param.B.Min = 0.
+                else:
+                    P.Param.B.Max = 0.                
+                P.Param.Kappa.Fixed = fixed[1]
+                P.Param.Dist0.Fixed = fixed[2]
+                P.Param.Sigma.Fixed = fixed[4]
+                P.Param.Epsilon.Fixed = fixed[5]
+                ForceField.append(P)
 
     if IsCharged:
         #Ewald
