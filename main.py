@@ -147,9 +147,9 @@ IsFixedCharge = True
 #Ewald params
 EwaldParams = {'ExcludeBondOrd': 0, 'Cut': Cut, 'Shift': True, 'Label': 'EW', 'Coef': EwaldCoef, 'EwaldNAtom': None, 'FixedCoef': FixedCoef}
 
-#External Potential
+#External Potential, ExtPot can be list of many external potentials
 UConst = 0.
-ExtPot = {"UConst": UConst, "NPeriods": 1, "PlaneAxis": 2, "PlaneLoc": 0., 'AtomTypes':['HOH']}
+ExtPot = {"UConst": UConst, "NPeriods": 1, "PlaneAxis": 2, "PlaneLoc": 0., 'AtomTypes':'HOH',"Label":"UExtSin"}
 
 # Default Simulation Package Settings
 sim.export.lammps.NeighOne = 8000

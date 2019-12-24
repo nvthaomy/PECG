@@ -20,10 +20,18 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
    
     print("\nCreating forcefield for {}".format(Sys.Name))
     ForceField = []
-    if ExtPot["UConst"] > 0:
-        UseExternal = True
-    else:
-        UseExternal = False
+    try:
+        if ExtPot["UConst"] > 0:
+            UseExternal = True
+        else:
+            UseExternal = False
+    except: 
+        for P in ExtPot:
+            if P["UConst"] > 0:
+                UseExternal = True
+                break
+            else: 
+                UseExternal = False
     #Bond    
     for (atom1name,atom2name), params in sorted(BondParams.items()):
         print('Adding {}'.format(params[2]))
@@ -55,10 +63,13 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
             atom2 = AtomTypes[atom2name]
             fixed = IsFixedLJGauss[(atom1name,atom2name)]
             Filter = sim.atomselect.PolyFilter(Filters = [atom1, atom2])
-            try:
-                NGauss = NGaussDicts[(atom1name,atom2name)]
-            except:
-                NGauss = NGaussDicts[(atom2name,atom1name)]
+            if ('All','All') in NGaussDicts.keys():
+                NGauss = NGaussDicts[('All','All')]
+            else:
+                try:
+                    NGauss = NGaussDicts[(atom1name,atom2name)]
+                except:
+                    NGauss = NGaussDicts[(atom2name,atom1name)]
             #adding multiple Gaussians
             for i in range(NGauss): 
                 Label = params[6] + '{}'.format(i)
@@ -98,15 +109,22 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
         
     if UseExternal:
         """applies external field to just species included in FilterExt"""
-        print("Using external sinusoid with UConst {}".format(ExtPot["UConst"]))
-        AtomTypesInExt = []
-        for AtomName in ExtPot['AtomTypes']:
-            AtomTypesInExt.append(AtomTypes[AtomName])
-        FilterExt = sim.atomselect.PolyFilter(Filters = AtomTypesInExt)
-        print('Filter for Uext {}'.format(FilterExt))
-        P = sim.potential.ExternalSinusoid(Sys, Filter=FilterExt, UConst=ExtPot["UConst"], NPeriods=ExtPot["NPeriods"], 
-                                           PlaneAxis=ExtPot["PlaneAxis"], PlaneLoc=ExtPot["PlaneLoc"], Label="ExtSin")
-        ForceField.append(P)
+        if isinstance(ExtPot,list):
+            for P in ExtPot: 
+                AtomTypesInExt = AtomTypes[P['AtomTypes']]
+                FilterExt = sim.atomselect.PolyFilter(Filters = [AtomTypesInExt])
+                print("Using external sinusoid with UConst {} on {}".format(P["UConst"],P['AtomTypes'])) 
+                P0 = sim.potential.ExternalSinusoid(Sys, Filter=FilterExt, UConst=P["UConst"], NPeriods=P["NPeriods"], 
+                                           PlaneAxis=P["PlaneAxis"], PlaneLoc=P["PlaneLoc"], Label=P["Label"])
+                ForceField.append(P0)
+        else:
+            print("Using external sinusoid with UConst {} on {}".format(ExtPot["UConst"],ExtPot['AtomTypes']))    
+            AtomTypesInExt = AtomTypes[ExtPot['AtomTypes']]
+            FilterExt = sim.atomselect.PolyFilter(Filters =[AtomTypesInExt]) 
+            P0 = sim.potential.ExternalSinusoid(Sys, Filter=FilterExt, UConst=ExtPot["UConst"], NPeriods=ExtPot["NPeriods"],     
+                          PlaneAxis=ExtPot["PlaneAxis"], PlaneLoc=ExtPot["PlaneLoc"], Label=ExtPot["Label"]))
+            ForceField.append(P0)
+
     return ForceField
     
     
