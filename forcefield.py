@@ -81,7 +81,8 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
                 if i%2 == 0:
                     P.Param.B.Min = 0.
                 else:
-                    P.Param.B.Max = 0.                
+                    P.Param.B.Min = -100.
+#                    P.Param.B.Max = 0.                
                 P.Param.Kappa.Fixed = fixed[1]
                 P.Param.Dist0.Fixed = fixed[2]
                 P.Param.Sigma.Fixed = fixed[4]
@@ -122,7 +123,7 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
             AtomTypesInExt = AtomTypes[ExtPot['AtomTypes']]
             FilterExt = sim.atomselect.PolyFilter(Filters =[AtomTypesInExt]) 
             P0 = sim.potential.ExternalSinusoid(Sys, Filter=FilterExt, UConst=ExtPot["UConst"], NPeriods=ExtPot["NPeriods"],     
-                          PlaneAxis=ExtPot["PlaneAxis"], PlaneLoc=ExtPot["PlaneLoc"], Label=ExtPot["Label"]))
+                          PlaneAxis=ExtPot["PlaneAxis"], PlaneLoc=ExtPot["PlaneLoc"], Label=ExtPot["Label"])
             ForceField.append(P0)
 
     return ForceField

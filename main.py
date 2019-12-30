@@ -182,7 +182,7 @@ if len(CGtrajs) == 0:
         CGtrajs.append(CGtraj)
         BoxLs.extend(BoxL)
         print "BoxL {}".format(BoxL)
-        UniqueCGatomTypes.append(CGatomTypes)
+        UniqueCGatomTypes.extend(CGatomTypes)
     UniqueCGatomTypes = np.unique(np.array(UniqueCGatomTypes))
 else:
     for i, CGtraj in enumerate(CGtrajs):
