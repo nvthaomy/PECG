@@ -133,7 +133,7 @@ def getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = None,
         resIdLow = np.min(resId)
         resIdUp = np.max(resId)
         atom_indices = traj.topology.select('resid {} to {}'.format(resIdLow,resIdUp)) 
-
+        print('Indices of atoms in chain {} \n{}'.format(j+1,atom_indices))
         mass_list = []
         for index in atom_indices:
             element = str(traj.topology.atom(index).element)
@@ -282,3 +282,15 @@ def getStats(trajFile, top, NP, ThermoLog, DOP = 10, NAtomsPerChain = None,
         txt +=  '\n %s\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%s' %(obs, Avg, Std, Err, CorrTime, 'N/A')
     f = open(StatsFName, 'w')
     f.write(txt)
+
+if __name__ ==  '__main__':
+
+    TrajFile = 'PAA0_traj.dcd'
+    ThermoLog = 'PAA0_lammps.log'
+    NAtomsPerChain = 12
+    NP = 15
+    top = 'PAA0.pdb'     
+    getStats(TrajFile, top, NP, ThermoLog, DOP = 12, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
+            RgDatName = 'RgTimeSeries', ReeDatName = 'ReeTimeSeries',RgStatOutName = 'RgReeStats', Ext='.dat',
+             fi = 'lammps', obs = ['PotEng', 'Temp', 'Press'], cols = None,
+             res0Id = 0, stride = 2, autowarmup = True, warmup = 100)
