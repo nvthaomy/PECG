@@ -94,7 +94,7 @@ def getThermo(ThermoLog, fi = 'lammps', obs = None, cols = None, autowarmup = Tr
         
 def getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = None, 
              RgDatName = 'RgTimeSeries', ReeDatName = 'ReeTimeSeries',RgStatOutName = 'RgReeStats', Ext='.dat',  
-             res0Id = 0, stride = 1, autowarmup = True, warmup = 100):    
+             res0Id = 0, stride = 1, autowarmup = True, warmup = 100, plot = False):    
     
     """NAtomsPerChain: used if running CG system, if provided will assume there is one residue per chain"""
     ElementDictionary ={
@@ -185,11 +185,12 @@ def getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = None,
 #        print ('\t{0:2.4f}\t{1:2.5f}\t{1:2.5f}'.format(RgAvg, RgErr, RgStd))
 
         ''' Plot Rg '''
-        plt.plot(Rg, "k-")
-        plt.xlabel('timestep')
-        plt.ylabel('Radius-of-gryation')
-        plt.savefig("Rg{}.png".format(j+1),bbox_inches='tight')
-        plt.close()
+        if plot:
+            plt.plot(Rg, "k-")
+            plt.xlabel('timestep')
+            plt.ylabel('Radius-of-gryation')
+            plt.savefig("Rg{}.png".format(j+1),bbox_inches='tight')
+            plt.close()
 
         '''=== Compute Ree ==='''
         atom_pairs = [np.min(atom_indices), np.max(atom_indices)]
@@ -230,11 +231,12 @@ def getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = None,
         ReeStats.append([ReeAvg,ReeStd,CorrTime,ReeErr,NUncorrSamples])
 
         ''' Plot Ree '''
-        plt.plot(Rg, "k-")
-        plt.xlabel('timestep')
-        plt.ylabel('End-to-end distance')
-        plt.savefig("Ree{}.png".format(j+1),bbox_inches='tight')
-        plt.close()
+        if plot:
+            plt.plot(Ree, "k-")
+            plt.xlabel('timestep')
+            plt.ylabel('End-to-end distance')
+            plt.savefig("Ree{}.png".format(j+1),bbox_inches='tight')
+            plt.close()
 
     #get averages of stats
     RgStats = np.array(RgStats)
@@ -270,11 +272,11 @@ def getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = None,
 def getStats(trajFile, top, NP, ThermoLog, DOP = 10, NAtomsPerChain = None,  
              StatsFName = 'AllStats.dat', RgDatName = 'RgTimeSeries', ReeDatName = 'ReeTimeSeries',RgStatOutName = 'RgReeStats', Ext='.dat',  
              fi = 'lammps', obs = None, cols = None,
-             res0Id = 0, stride = 1, autowarmup = True, warmup = 100):
+             res0Id = 0, stride = 1, autowarmup = True, warmup = 100, plot = False):
     
     RgAvg,RgStd,RgErr,RgCorrTime,RgCorrTimeErr,RgNUncorrSamples, ReeAvg,ReeStd,ReeErr,ReeCorrTime,ReeCorrTimeErr,ReeNUncorrSamples = getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = NAtomsPerChain, 
              RgDatName = RgDatName, ReeDatName = ReeDatName, RgStatOutName = RgStatOutName, Ext=Ext,  
-             res0Id = res0Id, stride = stride, autowarmup = autowarmup, warmup = warmup)
+             res0Id = res0Id, stride = stride, autowarmup = autowarmup, warmup = warmup, plot = False)
     print('reading thermo file {}'.format(ThermoLog))
     obsID, Stats = getThermo(ThermoLog, fi = fi, obs = obs, cols = cols, autowarmup = autowarmup, warmup = warmup)
     
@@ -298,4 +300,4 @@ if __name__ ==  '__main__':
     getStats(TrajFile, top, NP, ThermoLog, DOP = 12, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
             RgDatName = 'RgTimeSeries', ReeDatName = 'ReeTimeSeries',RgStatOutName = 'RgReeStats', Ext='.dat',
              fi = 'lammps', obs = ['PotEng', 'Temp', 'Press'], cols = None,
-             res0Id = 0, stride = 1, autowarmup = True, warmup = 100)
+             res0Id = 0, stride = 1, autowarmup = True, warmup = 100, plot = False)
