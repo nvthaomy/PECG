@@ -80,9 +80,12 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
                 #set bound of B, repulsive if i is even, attractive if i is odd
                 if i%2 == 0:
                     P.Param.B.Min = 0.
+                    if  params[0] < 0.:
+                        P.Param.B = -params[0]
                 else:
-                    P.Param.B.Min = -100.
-#                    P.Param.B.Max = 0.                
+                    P.Param.B.Max = 0.
+                    if params[0] > 0.:
+                        P.Param.B = -params[0]
                 P.Param.Kappa.Fixed = fixed[1]
                 P.Param.Dist0.Fixed = fixed[2]
                 P.Param.Sigma.Fixed = fixed[4]

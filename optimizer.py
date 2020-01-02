@@ -54,3 +54,13 @@ def CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsPro
         W = Sys.NDOF - 3*Sys.Pres*Volume
         Opt.AddPenalty("Virial", W, MeasureScale = 1./Sys.NAtom, Coef = 1.e-80) #HERE also need to scale the measure by 1/NAtom to be comparable to Srel
     return Opt
+
+def RunOpt(Opts, Weights, Prefix, UseWPenalty, MaxIter, SteepestIter, StageCoefs):
+
+    Optimizer = sim.srel.OptimizeMultiTrajClass(Opts, Weights=Weights)
+    Optimizer.FilePrefix = ("{}".format(Prefix))
+    if not UseWPenalty:
+        Optimizer.RunConjugateGradient(MaxIter=MaxIter, SteepestIter=SteepestIter)
+    else:
+        Optimizer.RunStages(StageCoefs = StageCoefs)
+

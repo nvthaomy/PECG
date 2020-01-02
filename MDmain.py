@@ -6,10 +6,10 @@ Created on Thu Dec 12 18:11:03 2019
 @author: my
 """
 import sim, pickleTraj
-#import mappoly_implicit as mappoly
-import mappoly
 import system, optimizer
 import numpy as np
+import MDAnalysis as mda
+import analysis
 """assume all atom indices in trajectory follow the same order as definition of MolTypes, NMons, and NMols
 To do:
    allow mapping other than 1:1 for polymer
@@ -17,7 +17,9 @@ To do:
    check read BoxL from AAtraj, unit consistency
    make sure all systems in the EE have same forcefield
    how to run neutral system along with charged system? lammps doesn't allow coulomb for neutral beads
-   lammps: fix overlay pair style coeff, use table2 when appropriate"""
+   lammps: fix overlay pair style coeff, use table2 when appropriate
+   
+   generalize to calculate Rg if there are two different polymers, currently assume calculate Rg on PAA"""
 
 """---Inputs---"""  
 kB = 1.380658e-23
@@ -36,32 +38,33 @@ else:
 # energy: kT
 # pressure: kT/a_water**3
 """TOPOLOGY"""
-AAtrajs = ['trajectory_xp0.1_N12_f0_V157_LJPME_298K_NVT_Uext0.dcd']
-AAtops = ['AA12_f0_opc_gaff2_w0.13.parm7']
-stride = 1000
-#map AA residue to CG bead name
 nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
                'ATP':'A', 'AHP':'A', 'AP': 'A', 'ATD': 'A-', 'AHD': 'A-', 'AD': 'A-',
                'NTP':'B+', 'NHP':'B+', 'NP': 'B+', 'NTD': 'B', 'NHD': 'B', 'ND': 'B'}
-CGtrajs = ['trajectory_xp0.1_N12_f0_V157_LJPME_298K_NVT_Uext0_mapped.lammpstrj.gz']
-#CGtrajs = ['trajectory_xp01_N12_f0_V157_LJPME_298K_NVT_Uext0_mapped.lammpstrj.gz']
-#provide UniqueCGatomTypes if CGtrajs is not an empty list
-UniqueCGatomTypes = ['A']
-
+BoxLs = [[5.27901/0.31,5.27901/0.31,5.27901/0.31]]
 #name of molecules in systems
 #must in the right sequence as molecules in the trajectory
 MolNamesList = [['PAA']]
 # nSys x molecule types   
-MolTypesDicts = [{'PAA':['A','A']*6,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
+MolTypesDicts = [{'PAA':['A-','A-']*6,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
 # number of molecules for each molecule type, nSys x molecule types
-NMolsDicts = [{'PAA':15,'Na+':0,'Cl-':0,'HOH':0}]
+NMolsDicts = [{'PAA':15,'Na+':180,'Cl-':0,'HOH':0}]
 charges = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0,'A-': -1., 'B': 0., 'B-': 1.}
 
 Name = 'PAA'
 
+#get UniqueCGatomTypes
+UniqueCGatomTypes = []
+for i, NMolsDict in enumerate(NMolsDicts):
+    MolTypesDict = MolTypesDicts[i]
+    for Mol,NMol in NMolsDict.items():
+        UniqueCGatomTypes.extend(NMol*MolTypesDict[Mol]) 
+UniqueCGatomTypes = np.unique(np.array(UniqueCGatomTypes))
+print(UniqueCGatomTypes) 
+
 """INTEGRATION PARAMS"""
 #real units: dt (ps), temp (K), pressure (atm)
-dt = 0.0001 
+dt = 0.00005
 TempSet = [1.]
 PresSet = [] #enter values to enable NPT
 
@@ -71,43 +74,34 @@ PresSet = np.array(PresSet)
 
 IntParams = {'TimeStep': dt, 'LangevinGamma': 1/(100*dt)}
 
-"""SREL OPT"""
+"""MD OPT"""
 UseLammps = True
 UseOMM = False
 UseSim = False
-ScaleRuns = True
+StepsMin = 1000
 StepScales = [] #set to empty if don't want to scale steps
-StepsEquil =10000
-StepsProd = 200000
-StepsStride = 100
-WeightSysByNMol = False
-WeightSysByNAtom = True
-
-UseWPenalty = False
-StageCoefs = []
-
-MaxIter=None
-SteepestIter=0
+StepsEquil = 100000 
+StepsProd = 1e7
+StepsStride = 200
 
 """FORCEFIELD"""
 """fix self interaction of water to value that reproduce the compressibility of pure water, u0 = 18.69kT, B = u0/(4 pi aev**2)**(3/2)"""
-SysLoadFF = True
-ForceFieldFile = 'xp0.1_N12_f0_V157_LJPME_298K_NVT_Spline2Gauss_ff.dat'
+SysLoadFF = True #always read force field when run MD
+ForceFieldFile = 'PAA_ff.dat'
 
 #Excluded volume size for each atom type: a_ev = 1/(number density of this CG atom type)
 aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4.5/3.1, 'B-': 4.5/3.1}
 aCoul_self = aevs_self.copy()
 
 #BondParams: (atom1,atom2):[Dist0,FConst,Label], FConts = kcal/mol/Angstrom**2
-BondParams = {('A','A'):[1., 2000, 'BondA_A']}
-#{('A','A-'):[4., 50*kTkcalmol, 'BondA_A-'], ('A','A'):[4., 50*kTkcalmol, 'BondA_A'],
+BondParams = {('A-','A-'):[4., 50*kTkcalmol, 'BondA-_A-']}
 #               ('B','B+'):[4., 50*kTkcalmol, 'BondB_B+'], ('B','B'):[4., 50*kTkcalmol, 'BondB_B']}
 #whether to fix a parameter
 IsFixedBond = {('A','A-'):[False,False,True], ('A','A'):[False,False,True], ('A-','A-'):[False,False,True],
                ('B','B+'):[False,False,True], ('B','B'):[False,False,True], ('B+','B+'):[False,False,True]}
 #Pair interaction
 #use spline or LJGauss for pair?
-UseLJGauss = True
+UseLJGauss = False
 
 #set cut to be 5 * the largest aev
 Cut = 8.5 #5 * np.max(aevs_self.values())
@@ -140,8 +134,8 @@ NonbondEneSlopeInit = '1.kTperA'
 SmearedCoulParams = {}
 EwaldCoef = 2.4
 SCoulShift = True
-FixedCoef = True
-FixedBornA = True
+FixedCoef = False
+FixedBornA = False
 IsFixedCharge = True
 
 #Ewald params
@@ -158,7 +152,7 @@ sim.export.lammps.InnerCutoff = 1.e-6
 sim.export.lammps.NPairPotentialBins = 1000
 sim.export.lammps.LammpsExec = 'lmp_omp'
 sim.export.lammps.UseLangevin = True
-sim.export.lammps.OMP_NumThread = 8 
+sim.export.lammps.OMP_NumThread = 3
 sim.export.lammps.TableInterpolationStyle = 'spline' # More robust than spline for highly CG-ed systems
 sim.srel.optimizetrajlammps.LammpsDelTempFiles = False
 sim.srel.optimizetrajlammps.UseLangevin = True
@@ -172,23 +166,6 @@ sim.export.omm.UseTabulated = True
 
 """---End of inputs---"""
         
-"""Map AA trajectories to CG beads and get all unique CG atom types"""
-#map AA trajectory if no CG trajs were provided
-BoxLs = []
-if len(CGtrajs) == 0:
-    UniqueCGatomTypes = []
-    for i, AAtraj in enumerate(AAtrajs):
-        CGatomTypes, AAatomId, CGtraj, BoxL = mappoly.mapTraj(AAtraj,AAtops[i],nameMap, lengthScale, stride = stride)
-        CGtrajs.append(CGtraj)
-        BoxLs.extend(BoxL)
-        print "BoxL {}".format(BoxL)
-        UniqueCGatomTypes.extend(CGatomTypes)
-    UniqueCGatomTypes = np.unique(np.array(UniqueCGatomTypes))
-else:
-    for i, CGtraj in enumerate(CGtrajs):
-        CGtraj = pickleTraj(CGtraj)
-        CGtrajs[i] = CGtraj
-        BoxLs.append(CGtraj.FrameData['BoxL'])    
 """Calculate forcefield parameters. This will likely to change"""
 #get mixed term of aev and calculate kappa parameter for LJGauss, k = 1/(4aev^2)
 #Born radii = a_Coul * sqrt(pi)
@@ -240,7 +217,7 @@ for i in range(len(UniqueCGatomTypes)):
             if not (atom1,atom2) in SmearedCoulParams.keys() and not (atom2,atom1) in SmearedCoulParams.keys():
                 SmearedCoulParams.update({(atom1,atom2):[BornA, Cut, SCoulShift, FixedCoef, FixedBornA, 'SmearCoul{}_{}'.format(atom1,atom2), EwaldCoef]})    
 
-"""Create systems and optimizers"""
+"""Create systems"""
 Systems = []
 Maps = []
 Opts = []
@@ -261,7 +238,6 @@ for i, MolTypesDict in enumerate(MolTypesDicts):
     MolNames = MolNamesList[i]
     Temp = TempSet[i]
     SysName = Name+str(i)
-    CGtraj = CGtrajs[i]
     BoxL = BoxLs[i] 
     if UseNPT:
         Pres = PresSet[i]
@@ -274,29 +250,56 @@ for i, MolTypesDict in enumerate(MolTypesDicts):
     #create system and add forcefield, then create optimizer for each system
     Sys = system.CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
                               NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units)
-    Opt = optimizer.CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty)
 
-    Opts.append(Opt)
     Systems.append(Sys)
     NAtoms.append(Sys.NAtom)
     NMols.append(Sys.NMol)
 
-"""Run Optimization"""
-# Just always using the OptimizeMultiTrajClass
-Weights = [1.]*len(Opts)
+""" Run MD """
+for i, Sys in enumerate(Systems):
+    Sys.ForceField.SetParamString(open(ForceFieldFile, 'r').read())
+    if StepScales:
+        scaledStepsEquil = StepsEquil * StepScales[i]
+        scaledStepsProd = StepsProd * StepScales[i]
+    else:
+        scaledStepsEquil = StepsEquil
+        scaledStepsProd = StepsProd
 
-if WeightSysByNMol:
-    Weights = []
-    for NMol in NMols:
-        Weights.append(np.max(NMols)/float(NMol))
-    print ('Weights for Expanded Ensemble are:')
-    print (Weights)
-    
-elif WeightSysByNAtom:
-    Weights = []
-    for NAtom in NAtoms:
-        Weights.append(np.max(NAtoms)/float(NAtom))
-    print ('Weights for Expanded Ensemble are:')
-    print (Weights)
-optimizer.RunOpt(Opts, Weights, Name, UseWPenalty, MaxIter, SteepestIter, StageCoefs)
+    #make initial pdb
+    top = sim.traj.pdb.PdbWrite('{}_init.pdb'.format(Sys.Name))
+    top.AddAction(Sys.Int, StepFreq = 9)
+    Sys.Int.Run(10)
 
+    if UseSim:
+        fobj = open('{}_measures.dat'.format(Sys.Name), 'w')
+        Sys.Measures.VerboseOutput(fobj = fobj, StepFreq=StepsStride)
+        Trj = sim.traj.lammps.LammpsWrite("{}_traj.lammpstrj".format(Sys.Name))
+        Trj.AddAction(Sys.Int, StepFreq = StepsStride)
+        print "Now conducting warm-up...."
+        Sys.Int.Run(scaledStepsEquil)
+        #Sys.Measures.Reset()
+        print "Now running production runs...."
+        Sys.Int.Run(scaledStepsProd)
+        print "timing:", Sys.Int.TimeElapsed
+        print "\n"
+    elif UseLammps:
+        TrajFile = 'traj.dcd'
+        ret = sim.export.lammps.MakeLammpsTraj(Sys, DelTempFiles = False, Prefix = Sys.Name+'_', TrajFile = TrajFile,
+                                                       Verbose = True, NStepsMin = StepsMin, NStepsEquil = scaledStepsEquil, NStepsProd = scaledStepsProd,
+                                                       WriteFreq = StepsStride, CalcPress = False , OutputDCD = True, ReturnTraj = False, Nevery=500, Nrepeat=1, Nfreq=500,
+                                                       ThermoOutput = "step pe temp press", ThermoStyle = "col")
+        # Converts LAMMPS.data to .pdb with structure information
+        u = mda.Universe(Sys.Name+'_'+'lammps.data')
+        gr = u.atoms
+        gr.write(Sys.Name+'.pdb')
+        top = Sys.Name+'.pdb'
+         
+        """Analyze"""
+        TrajFile = Sys.Name+'_'+TrajFile
+        ThermoLog = Sys.Name+'_'+'lammps.log'
+        NAtomsPerChain = len(MolTypesDicts[i]['PAA'])
+        NP = NMolsDicts[i]['PAA']
+        analysis.getStats(TrajFile, top, NP, ThermoLog, DOP = 12, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
+             RgDatName = 'RgTimeSeries', ReeDatName = 'ReeTimeSeries',RgStatOutName = 'RgReeStats', Ext='.dat',  
+             fi = 'lammps', obs = ['PotEng', 'Temp', 'Press'], cols = None,
+             res0Id = 0, stride = 1, autowarmup = True, warmup = 100)
