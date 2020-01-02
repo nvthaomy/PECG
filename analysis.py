@@ -86,7 +86,8 @@ def getThermo(ThermoLog, fi = 'lammps', obs = None, cols = None, autowarmup = Tr
         Std = np.sqrt(unbiasedvar)
         Err = semcc
         CorrTime = kappa 
-        Stats.append([Avg,Std,CorrTime,Err])
+        NUncorrSamples = nsamples/kappa
+        Stats.append([Avg,Std,CorrTime,Err,NUncorrSamples])
         obsID.append(obsName)
 
     return obsID, Stats
@@ -177,7 +178,8 @@ def getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = None,
         RgStd = np.sqrt(unbiasedvar)
         RgErr = semcc
         CorrTime = kappa 
-        RgStats.append([RgAvg,RgStd,CorrTime,RgErr])
+        NUncorrSamples = nsamples/kappa
+        RgStats.append([RgAvg,RgStd,CorrTime,RgErr,NUncorrSamples])
 
 #        print ('The Rg for molecule {} (mean, error, std)'.format(j))
 #        print ('\t{0:2.4f}\t{1:2.5f}\t{1:2.5f}'.format(RgAvg, RgErr, RgStd))
@@ -224,7 +226,8 @@ def getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = None,
         ReeStd = np.sqrt(unbiasedvar)
         ReeErr = semcc
         CorrTime = kappa 
-        ReeStats.append([ReeAvg,ReeStd,CorrTime,ReeErr])
+        NUncorrSamples = nsamples/kappa
+        ReeStats.append([ReeAvg,ReeStd,CorrTime,ReeErr,NUncorrSamples])
 
         ''' Plot Ree '''
         plt.plot(Rg, "k-")
@@ -241,6 +244,7 @@ def getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = None,
     RgErr = np.mean(RgStats[:,3])
     RgErr_Prop = np.sqrt(np.sum(RgStats[:,3]**2))/NP
     RgCorrTimeErr = np.sqrt(np.var(RgStats[:,2])/len(RgStats[:,2]))
+    RgNUncorrSamples = np.mean(RgStats[:,4])
 
     ReeStats = np.array(ReeStats)
     ReeAvg = np.mean(ReeStats[:,0])
@@ -249,7 +253,8 @@ def getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = None,
     ReeErr = np.mean(ReeStats[:,3])
     ReeErr_Prop = np.sqrt(np.sum(ReeStats[:,3]**2))/NP
     ReeCorrTimeErr = np.sqrt(np.var(ReeStats[:,2])/len(ReeStats[:,2]))
-    
+    ReeNUncorrSamples = np.mean(ReeStats[:,4])
+
     lines = ""
     lines += '\n\n=====================\nTotal Rg average is: {0:2.3f} +/- {1:2.5f}'.format(RgAvg,RgErr)
     lines += '\nTotal Rg avg. correlation time: {0:5.4f} +/- {1:5.6f}'.format(RgCorrTime, RgCorrTimeErr)
@@ -260,26 +265,26 @@ def getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = None,
     txtRg += lines
     f = open(RgStatOutName+Ext,'w')
     f.write(txtRg)
-    return  RgAvg,RgStd,RgErr,RgCorrTime,RgCorrTimeErr, ReeAvg,ReeStd,ReeErr,ReeCorrTime,ReeCorrTimeErr 
+    return  RgAvg,RgStd,RgErr,RgCorrTime,RgCorrTimeErr,RgNUncorrSamples, ReeAvg,ReeStd,ReeErr,ReeCorrTime,ReeCorrTimeErr,ReeNUncorrSamples 
 
 def getStats(trajFile, top, NP, ThermoLog, DOP = 10, NAtomsPerChain = None,  
              StatsFName = 'AllStats.dat', RgDatName = 'RgTimeSeries', ReeDatName = 'ReeTimeSeries',RgStatOutName = 'RgReeStats', Ext='.dat',  
              fi = 'lammps', obs = None, cols = None,
              res0Id = 0, stride = 1, autowarmup = True, warmup = 100):
     
-    RgAvg,RgStd,RgErr,RgCorrTime,RgCorrTimeErr, ReeAvg,ReeStd,ReeErr,ReeCorrTime,ReeCorrTimeErr = getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = NAtomsPerChain, 
+    RgAvg,RgStd,RgErr,RgCorrTime,RgCorrTimeErr,RgNUncorrSamples, ReeAvg,ReeStd,ReeErr,ReeCorrTime,ReeCorrTimeErr,ReeNUncorrSamples = getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = NAtomsPerChain, 
              RgDatName = RgDatName, ReeDatName = ReeDatName, RgStatOutName = RgStatOutName, Ext=Ext,  
              res0Id = res0Id, stride = stride, autowarmup = autowarmup, warmup = warmup)
     print('reading thermo file {}'.format(ThermoLog))
     obsID, Stats = getThermo(ThermoLog, fi = fi, obs = obs, cols = cols, autowarmup = autowarmup, warmup = warmup)
     
-    txt = '#  Avg.\tS.D.\tStdErr.\tCorr.\tStdErr.\n'
-    txt += ' Rg\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%8.5f' %(RgAvg,RgStd,RgErr,RgCorrTime,RgCorrTimeErr)
-    txt += '\n Ree\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%8.5f' %(ReeAvg,ReeStd,ReeErr,ReeCorrTime,ReeCorrTimeErr)
+    txt = '#  Avg.\tS.D.\tStdErr.\tCorr.\tStdErr.\tUncorr.Samples\n'
+    txt += ' Rg\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%i' %(RgAvg,RgStd,RgErr,RgCorrTime,RgCorrTimeErr,RgNUncorrSamples)
+    txt += '\n Ree\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%i' %(ReeAvg,ReeStd,ReeErr,ReeCorrTime,ReeCorrTimeErr,ReeNUncorrSamples)
 
     for i, obs in enumerate(obsID):
-        Avg,Std,CorrTime,Err = Stats[i]
-        txt +=  '\n %s\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%s' %(obs, Avg, Std, Err, CorrTime, 'N/A')
+        Avg,Std,CorrTime,Err,NUncorrSamples = Stats[i]
+        txt +=  '\n %s\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%s\t%i' %(obs, Avg, Std, Err, CorrTime, 'N/A',NUncorrSamples)
     f = open(StatsFName, 'w')
     f.write(txt)
 
@@ -293,4 +298,4 @@ if __name__ ==  '__main__':
     getStats(TrajFile, top, NP, ThermoLog, DOP = 12, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
             RgDatName = 'RgTimeSeries', ReeDatName = 'ReeTimeSeries',RgStatOutName = 'RgReeStats', Ext='.dat',
              fi = 'lammps', obs = ['PotEng', 'Temp', 'Press'], cols = None,
-             res0Id = 0, stride = 2, autowarmup = True, warmup = 100)
+             res0Id = 0, stride = 1, autowarmup = True, warmup = 100)
