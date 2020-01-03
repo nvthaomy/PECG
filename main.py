@@ -43,18 +43,18 @@ stride = 1000
 nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
                'ATP':'A', 'AHP':'A', 'AP': 'A', 'ATD': 'A-', 'AHD': 'A-', 'AD': 'A-',
                'NTP':'B+', 'NHP':'B+', 'NP': 'B+', 'NTD': 'B', 'NHD': 'B', 'ND': 'B'}
-CGtrajs = ['trajectory_xp0.1_N12_f0_V157_LJPME_298K_NVT_Uext0_mapped.lammpstrj.gz']
+CGtrajs = ['trajectory_xp0.1_N12_f1_V157_LJPME_298K_NVT_Uext0_mapped.lammpstrj.gz']
 #CGtrajs = ['trajectory_xp01_N12_f0_V157_LJPME_298K_NVT_Uext0_mapped.lammpstrj.gz']
 #provide UniqueCGatomTypes if CGtrajs is not an empty list
-UniqueCGatomTypes = ['A']
+UniqueCGatomTypes = ['A-','Na+']
 
 #name of molecules in systems
 #must in the right sequence as molecules in the trajectory
-MolNamesList = [['PAA']]
+MolNamesList = [['PAA','Na+']]
 # nSys x molecule types   
-MolTypesDicts = [{'PAA':['A','A']*6,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
+MolTypesDicts = [{'PAA':['A-','A-']*6,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
 # number of molecules for each molecule type, nSys x molecule types
-NMolsDicts = [{'PAA':15,'Na+':0,'Cl-':0,'HOH':0}]
+NMolsDicts = [{'PAA':15,'Na+': 180,'Cl-':0,'HOH':0}]
 charges = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0,'A-': -1., 'B': 0., 'B-': 1.}
 
 Name = 'PAA'
@@ -92,14 +92,14 @@ SteepestIter=0
 """FORCEFIELD"""
 """fix self interaction of water to value that reproduce the compressibility of pure water, u0 = 18.69kT, B = u0/(4 pi aev**2)**(3/2)"""
 SysLoadFF = True
-ForceFieldFile = 'xp0.1_N12_f0_V157_LJPME_298K_NVT_Spline2Gauss_ff.dat'
+ForceFieldFile = 'PAA_ff_init.dat'
 
 #Excluded volume size for each atom type: a_ev = 1/(number density of this CG atom type)
 aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4.5/3.1, 'B-': 4.5/3.1}
 aCoul_self = aevs_self.copy()
 
 #BondParams: (atom1,atom2):[Dist0,FConst,Label], FConts = kcal/mol/Angstrom**2
-BondParams = {('A','A'):[1., 2000, 'BondA_A']}
+BondParams = {('A-','A-'):[1., 2000, 'BondA-_A-']}
 #{('A','A-'):[4., 50*kTkcalmol, 'BondA_A-'], ('A','A'):[4., 50*kTkcalmol, 'BondA_A'],
 #               ('B','B+'):[4., 50*kTkcalmol, 'BondB_B+'], ('B','B'):[4., 50*kTkcalmol, 'BondB_B']}
 #whether to fix a parameter
@@ -107,7 +107,7 @@ IsFixedBond = {('A','A-'):[False,False,True], ('A','A'):[False,False,True], ('A-
                ('B','B+'):[False,False,True], ('B','B'):[False,False,True], ('B+','B+'):[False,False,True]}
 #Pair interaction
 #use spline or LJGauss for pair?
-UseLJGauss = True
+UseLJGauss = False
 
 #set cut to be 5 * the largest aev
 Cut = 8.5 #5 * np.max(aevs_self.values())
@@ -135,6 +135,7 @@ FixedEpsilon = True
 PSplineParams = {}
 PSplineNKnot = 10
 NonbondEneSlopeInit = '1.kTperA'
+FixedSpline = False
 
 #Smeared Coul
 SmearedCoulParams = {}
@@ -224,7 +225,7 @@ else:
             atom1 = UniqueCGatomTypes[i]
             atom2 = UniqueCGatomTypes[j]
             if not (atom1,atom2) in PSplineParams.keys() and not (atom2,atom1) in PSplineParams.keys():
-                PSplineParams.update({(atom1,atom2): [PSplineNKnot, Cut, NonbondEneSlopeInit, 'PSpline{}_{}'.format(atom1,atom2)]})
+                PSplineParams.update({(atom1,atom2): [PSplineNKnot, Cut, NonbondEneSlopeInit, 'PSpline{}_{}'.format(atom1,atom2), FixedSpline]})
 #SmearedCoulParams: (atom1,atom2): [BornA, Cut, Shift, FixedCoef,FixedBornA, Label, Coef]
 BornAs = {}
 for i in range(len(UniqueCGatomTypes)):
