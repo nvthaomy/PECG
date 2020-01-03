@@ -51,7 +51,7 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
             atom1 = AtomTypes[atom1name]
             atom2 = AtomTypes[atom2name]
             Filter = sim.atomselect.PolyFilter(Filters = [atom1, atom2])
-            P = sim.potential.PairSpline(Sys, Filter = Filter, Cut = params[1],
+            P = sim.potential.PairSpline(Sys, Filter = Filter, Cut = params[1], Fixed = params[4],
                                            NKnot = params[0], Label = params[3],
                                            NonbondEneSlopeInit = params[2])
             ForceField.append(P)
