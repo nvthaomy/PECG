@@ -44,7 +44,7 @@ nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
 BoxLs = [[5.27901/0.31,5.27901/0.31,5.27901/0.31]]
 #name of molecules in systems
 #must in the right sequence as molecules in the trajectory
-MolNamesList = [['PAA']]
+MolNamesList = [['PAA','Na+']]
 # nSys x molecule types   
 MolTypesDicts = [{'PAA':['A-','A-']*6,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
 # number of molecules for each molecule type, nSys x molecule types
@@ -64,7 +64,7 @@ print(UniqueCGatomTypes)
 
 """INTEGRATION PARAMS"""
 #real units: dt (ps), temp (K), pressure (atm)
-dt = 0.00005
+dt = 0.00001
 TempSet = [1.]
 PresSet = [] #enter values to enable NPT
 
@@ -81,8 +81,8 @@ UseSim = False
 StepsMin = 1000
 StepScales = [] #set to empty if don't want to scale steps
 StepsEquil = 100000 
-StepsProd = 1e7
-StepsStride = 200
+StepsProd = 6e7
+StepsStride = 500
 
 """FORCEFIELD"""
 """fix self interaction of water to value that reproduce the compressibility of pure water, u0 = 18.69kT, B = u0/(4 pi aev**2)**(3/2)"""

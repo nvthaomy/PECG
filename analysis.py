@@ -276,7 +276,7 @@ def getStats(trajFile, top, NP, ThermoLog, DOP = 10, NAtomsPerChain = None,
     
     RgAvg,RgStd,RgErr,RgCorrTime,RgCorrTimeErr,RgNUncorrSamples, ReeAvg,ReeStd,ReeErr,ReeCorrTime,ReeCorrTimeErr,ReeNUncorrSamples = getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = NAtomsPerChain, 
              RgDatName = RgDatName, ReeDatName = ReeDatName, RgStatOutName = RgStatOutName, Ext=Ext,  
-             res0Id = res0Id, stride = stride, autowarmup = autowarmup, warmup = warmup, plot = False)
+             res0Id = res0Id, stride = stride, autowarmup = autowarmup, warmup = warmup, plot = plot)
     print('reading thermo file {}'.format(ThermoLog))
     obsID, Stats = getThermo(ThermoLog, fi = fi, obs = obs, cols = cols, autowarmup = autowarmup, warmup = warmup)
     
@@ -300,4 +300,4 @@ if __name__ ==  '__main__':
     getStats(TrajFile, top, NP, ThermoLog, DOP = 12, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
             RgDatName = 'RgTimeSeries', ReeDatName = 'ReeTimeSeries',RgStatOutName = 'RgReeStats', Ext='.dat',
              fi = 'lammps', obs = ['PotEng', 'Temp', 'Press'], cols = None,
-             res0Id = 0, stride = 1, autowarmup = True, warmup = 100, plot = False)
+             res0Id = 0, stride = 1, autowarmup = True, warmup = 100, plot = True)
