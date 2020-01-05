@@ -41,14 +41,15 @@ else:
 nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
                'ATP':'A', 'AHP':'A', 'AP': 'A', 'ATD': 'A-', 'AHD': 'A-', 'AD': 'A-',
                'NTP':'B+', 'NHP':'B+', 'NP': 'B+', 'NTD': 'B', 'NHD': 'B', 'ND': 'B'}
-BoxLs = [[5.27901/0.31,5.27901/0.31,5.27901/0.31]]
+L = 513.18209**(1./3.)
+BoxLs = [[L/0.31,L/0.31,L/0.31]]
 #name of molecules in systems
 #must in the right sequence as molecules in the trajectory
-MolNamesList = [['PAA','Na+']]
+MolNamesList = [['PAA']]
 # nSys x molecule types   
-MolTypesDicts = [{'PAA':['A-','A-']*6,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
+MolTypesDicts = [{'PAA':['A']*90,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
 # number of molecules for each molecule type, nSys x molecule types
-NMolsDicts = [{'PAA':15,'Na+':180,'Cl-':0,'HOH':0}]
+NMolsDicts = [{'PAA':7,'Na+':0,'Cl-':0,'HOH':0}]
 charges = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0,'A-': -1., 'B': 0., 'B-': 1.}
 
 Name = 'PAA'
@@ -64,7 +65,7 @@ print(UniqueCGatomTypes)
 
 """INTEGRATION PARAMS"""
 #real units: dt (ps), temp (K), pressure (atm)
-dt = 0.00001
+dt = 0.001
 TempSet = [1.]
 PresSet = [] #enter values to enable NPT
 
@@ -80,9 +81,10 @@ UseOMM = False
 UseSim = False
 StepsMin = 1000
 StepScales = [] #set to empty if don't want to scale steps
-StepsEquil = 100000 
-StepsProd = 6e7
+StepsEquil = 500000 
+StepsProd = 1e7
 StepsStride = 500
+MDRestartFile = None #None: dont read restart file
 
 """FORCEFIELD"""
 """fix self interaction of water to value that reproduce the compressibility of pure water, u0 = 18.69kT, B = u0/(4 pi aev**2)**(3/2)"""
@@ -94,7 +96,7 @@ aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4
 aCoul_self = aevs_self.copy()
 
 #BondParams: (atom1,atom2):[Dist0,FConst,Label], FConts = kcal/mol/Angstrom**2
-BondParams = {('A-','A-'):[4., 50*kTkcalmol, 'BondA-_A-']}
+BondParams = {('A','A'):[4., 50*kTkcalmol, 'BondA_A']}
 #               ('B','B+'):[4., 50*kTkcalmol, 'BondB_B+'], ('B','B'):[4., 50*kTkcalmol, 'BondB_B']}
 #whether to fix a parameter
 IsFixedBond = {('A','A-'):[False,False,True], ('A','A'):[False,False,True], ('A-','A-'):[False,False,True],
@@ -127,7 +129,7 @@ FixedEpsilon = True
 
 #Pair spline
 PSplineParams = {}
-PSplineNKnot = 10
+PSplineNKnot = 20
 NonbondEneSlopeInit = '1.kTperA'
 
 #Smeared Coul
@@ -152,7 +154,7 @@ sim.export.lammps.InnerCutoff = 1.e-6
 sim.export.lammps.NPairPotentialBins = 1000
 sim.export.lammps.LammpsExec = 'lmp_omp'
 sim.export.lammps.UseLangevin = True
-sim.export.lammps.OMP_NumThread = 3
+sim.export.lammps.OMP_NumThread = 6
 sim.export.lammps.TableInterpolationStyle = 'spline' # More robust than spline for highly CG-ed systems
 sim.srel.optimizetrajlammps.LammpsDelTempFiles = False
 sim.srel.optimizetrajlammps.UseLangevin = True
@@ -284,7 +286,7 @@ for i, Sys in enumerate(Systems):
         print "\n"
     elif UseLammps:
         TrajFile = 'traj.dcd'
-        ret = sim.export.lammps.MakeLammpsTraj(Sys, DelTempFiles = False, Prefix = Sys.Name+'_', TrajFile = TrajFile,
+        ret = sim.export.lammps.MakeLammpsTraj(Sys, DelTempFiles = False, Prefix = Sys.Name+'_', TrajFile = TrajFile, WriteRestart = True, RestartFile = MDRestartFile,
                                                        Verbose = True, NStepsMin = StepsMin, NStepsEquil = scaledStepsEquil, NStepsProd = scaledStepsProd,
                                                        WriteFreq = StepsStride, CalcPress = False , OutputDCD = True, ReturnTraj = False, Nevery=500, Nrepeat=1, Nfreq=500,
                                                        ThermoOutput = "step pe temp press", ThermoStyle = "col")
