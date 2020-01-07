@@ -1,12 +1,17 @@
 #!/bin/bash
-#PBS -l nodes=1:ppn=5
-#PBS -l walltime=700:00:00
-#PBS -V
-#PBS -N xp0.1_N12_f0_V157_LJPME_298K_NVT 
-#PBS -M my@ucsb.edu
-#PBS -m ae
+# ask for 16 cores on two nodes
+#SBATCH --nodes=1 --ntasks-per-node=6
+#SBATCH --time=700:00:00
+#SBATCH --job-name=2Mnacl_opc_Uext2_NaCl_298K_NVT_fixUwater
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-type=END
+#SBATCH --mail-user=my@ucsb.edu
 
-cd $PBS_O_WORKDIR
+module load intel/18
+
+cd $SLURM_SUBMIT_DIR
+/bin/hostname
+
 #export PATH=/home/mnguyen/bin/lammps/lammps-12Dec18/bin/:$PATH
 export PATH=/home/mnguyen/lammps-7Aug19/bin/:$PATH
 export PATH="/home/mnguyen/miniconda3/envs/py2/bin/:$PATH"

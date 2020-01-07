@@ -87,14 +87,16 @@ if __name__ == "__main__":
     parser.add_argument('traj', type=str, help = "AA trajectory")
     parser.add_argument('top', type=str, help = "AA topology")
     parser.add_argument('-stride', type=int, help = "stide", default = 1)
+    parser.add_argument('-ls', type = float, help = "scale traj by 1/ls", default =1)
     args = parser.parse_args()
     
     traj = sys.argv[1]
     top = sys.argv[2]
     stride = args.stride
+    lengthScale = args.ls
 
     #dictionary defines: {AAres:[CGatomTypes]}
     nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH', 
                'ATP':'A', 'AHP':'A', 'AP': 'A', 'ATD': 'A-', 'AHD': 'A-', 'AD': 'A-',
                'NTP':'B+', 'NHP':'B+', 'NP': 'B+', 'NTD': 'B', 'NHD': 'B', 'ND': 'B'}
-    mappedTraj = mapTraj(traj, top, nameMap, stride)
+    mappedTraj = mapTraj(traj, top, nameMap, lengthScale, stride = stride)
