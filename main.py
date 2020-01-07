@@ -10,14 +10,37 @@ import sim, pickleTraj
 import mappoly
 import system, optimizer
 import numpy as np
-"""assume all atom indices in trajectory follow the same order as definition of MolTypes, NMons, and NMols
-To do:
+"""
+run with mappoly.py (or mappoly_implicit.py), system.py, optimizer.py, forcefield.py
+Run expanded ensemble Srel opt. (number of System can be 1) with/without weights in NPT or NVT
+If CGtrajs is empty, map AA traj to CG traj and scale positions and box size by 1/lengthScale (needed when running srel in dimensionless units)
+
+Molecules:
+    Na+, Cl-
+    Polycation: B, B+
+    Polyanion: A, A-
+    water: HOH    
+Supported potentials:
+    Bond: harmonic bond with or without offset
+    Pair: LJGauss (any number of gaussians) or spline
+    Electrostatics: smeared Coulomb
+    Sinusoidal external potential
+
+****assumptions:
+currently only do 1AAmonomer:1CGbead mapping for polymer
+all atom indices in trajectory follow the same order as definition of MolTypes, NMons, and NMols
+always fix gaussian strength for HOH-HOH
+all pair types have the same fix
+cross-a_ev = mean of self a_ev's
+Born radius = a_el = sqrt(pi) * a_ev
+if use multiple gaussians:
+    Gaussians with even idices are repulsive, odd indices are attractive (by setting B.Min, B.Max)
+
+****To do:
    allow mapping other than 1:1 for polymer
    read bond info with mdtraj to calculate number of monomers (NMons) ber bead and NMols
-   check read BoxL from AAtraj, unit consistency
-   make sure all systems in the EE have same forcefield
    how to run neutral system along with charged system? lammps doesn't allow coulomb for neutral beads
-   lammps: fix overlay pair style coeff, use table2 when appropriate"""
+"""
 
 """---Inputs---"""  
 kB = 1.380658e-23
@@ -35,33 +58,40 @@ else:
 # length: a_water = 3.1 A
 # energy: kT
 # pressure: kT/a_water**3
+
 """TOPOLOGY"""
+#map AA traj to CG traj
 AAtrajs = ['trajectory_xp0.1_N12_f0_V157_LJPME_298K_NVT_Uext0.dcd']
 AAtops = ['AA12_f0_opc_gaff2_w0.13.parm7']
 stride = 1000
+
 #map AA residue to CG bead name
 nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
                'ATP':'A', 'AHP':'A', 'AP': 'A', 'ATD': 'A-', 'AHD': 'A-', 'AD': 'A-',
                'NTP':'B+', 'NHP':'B+', 'NP': 'B+', 'NTD': 'B', 'NHD': 'B', 'ND': 'B'}
+
+#CG trajectories, if CGtrajs = [] will map AA traj, else will use provided CGtrajs
 CGtrajs = ['trajectory_xp0.1_N12_f1_V157_LJPME_298K_NVT_Uext0_mapped.lammpstrj.gz']
-#CGtrajs = ['trajectory_xp01_N12_f0_V157_LJPME_298K_NVT_Uext0_mapped.lammpstrj.gz']
-#provide UniqueCGatomTypes if CGtrajs is not an empty list
+#provide UniqueCGatomTypes if CGtrajs is not empty
 UniqueCGatomTypes = ['A-','Na+']
 
 #name of molecules in systems
 #must in the right sequence as molecules in the trajectory
 MolNamesList = [['PAA','Na+']]
-# nSys x molecule types   
+
+# Topology of molecules in all systems: nSys x molecule types   
 MolTypesDicts = [{'PAA':['A-','A-']*6,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
+
 # number of molecules for each molecule type, nSys x molecule types
 NMolsDicts = [{'PAA':15,'Na+': 180,'Cl-':0,'HOH':0}]
-charges = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0,'A-': -1., 'B': 0., 'B-': 1.}
 
+charges = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0,'A-': -1., 'B': 0., 'B-': 1.}
 Name = 'PAA'
 
 """INTEGRATION PARAMS"""
 #real units: dt (ps), temp (K), pressure (atm)
-dt = 0.0001 
+dt = 0.0001
+#TempSet and PresSet are lists 
 TempSet = [1.]
 PresSet = [] #enter values to enable NPT
 
@@ -99,33 +129,33 @@ aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4
 aCoul_self = aevs_self.copy()
 
 #BondParams: (atom1,atom2):[Dist0,FConst,Label], FConts = kcal/mol/Angstrom**2
-BondParams = {('A-','A-'):[1., 2000, 'BondA-_A-']}
+BondParams = {} #{('A-','A-'):[1., 2000, 'BondA-_A-']}
 #{('A','A-'):[4., 50*kTkcalmol, 'BondA_A-'], ('A','A'):[4., 50*kTkcalmol, 'BondA_A'],
 #               ('B','B+'):[4., 50*kTkcalmol, 'BondB_B+'], ('B','B'):[4., 50*kTkcalmol, 'BondB_B']}
-#whether to fix a parameter
+
+#whether to fix a parameter [Dist0,FConst,Label]
 IsFixedBond = {('A','A-'):[False,False,True], ('A','A'):[False,False,True], ('A-','A-'):[False,False,True],
                ('B','B+'):[False,False,True], ('B','B'):[False,False,True], ('B+','B+'):[False,False,True]}
+
 #Pair interaction
 #use spline or LJGauss for pair?
 UseLJGauss = False
 
-#set cut to be 5 * the largest aev
-Cut = 8.5 #5 * np.max(aevs_self.values())
+Cut = 8.5 
 
 #Gauss
-#number of Gaussians for each pair type
-NGaussDicts = {('A','A'): 2}
+#number of Gaussians for each pair type, if set {('All', 'All': n)}, all pairs have n Gaussians
+NGaussDicts = {('All','All'): 1}
+
 #Initial B
-B0 = 20. 
+B0 = 20. #initial B for pair types that are not HOH-HOH
 BHOH_HOH = 18.69 
 LJGDist0 = 0.
 LJGSigma = 1.
 LJGEpsilon = 0.
-LJGaussParams = {} 
-IsFixedLJGauss = {}
-#for now all pair types and all Gaussian interactions have same fixed paramters
+#for now all pair types and all Gaussian interactions have the same fix
 FixedB = False
-FixedKappa = False
+FixedKappa = True
 
 FixedDist0 = True
 FixedSigma = True
@@ -195,6 +225,8 @@ else:
 #Born radii = a_Coul * sqrt(pi)
 aevs = {}
 ks = {}
+LJGaussParams = {} 
+IsFixedLJGauss = {}
 if UseLJGauss:
     #LJGauss param: (atom1,atom2):[B, kappa, Dist0, Cut, Sigma, Epsilon, Label ]
     for i in range(len(UniqueCGatomTypes)):
