@@ -125,7 +125,7 @@ LJGaussParams = {}
 IsFixedLJGauss = {}
 #for now all pair types and all Gaussian interactions have same fixed paramters
 FixedB = False
-FixedKappa = False
+FixedKappa = True
 
 FixedDist0 = True
 FixedSigma = True
@@ -181,7 +181,7 @@ if len(CGtrajs) == 0:
     for i, AAtraj in enumerate(AAtrajs):
         CGatomTypes, AAatomId, CGtraj, BoxL = mappoly.mapTraj(AAtraj,AAtops[i],nameMap, lengthScale, stride = stride)
         CGtrajs.append(CGtraj)
-        BoxLs.extend(BoxL)
+        BoxLs.append(BoxL)
         print "BoxL {}".format(BoxL)
         UniqueCGatomTypes.extend(CGatomTypes)
     UniqueCGatomTypes = np.unique(np.array(UniqueCGatomTypes))
