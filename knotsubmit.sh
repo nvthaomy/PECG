@@ -7,6 +7,7 @@
 #PBS -m ae
 
 cd $PBS_O_WORKDIR
+OPENMM_CPU_THREADS=
 #export PATH=/home/mnguyen/bin/lammps/lammps-12Dec18/bin/:$PATH
 export PATH=/home/mnguyen/lammps-7Aug19/bin/:$PATH
 export PATH="/home/mnguyen/miniconda3/envs/py2/bin/:$PATH"
