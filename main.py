@@ -236,7 +236,7 @@ if UseLJGauss:
             atom2 = UniqueCGatomTypes[j]
             a1 = aevs_self[atom1]
             a2 = aevs_self[atom2]
-            a12 =  sqrt((a1**2 + a2**2)/2)
+            a12 =  np.sqrt((a1**2 + a2**2)/2)
             kappa = 1/(2*(a1**2 + a2**2))
             aevs.update({(atom1,atom2): a12})
             ks.update({(atom1,atom2): kappa})
@@ -267,7 +267,7 @@ for i in range(len(UniqueCGatomTypes)):
         atom2 = UniqueCGatomTypes[j]
         a1 = aCoul_self[atom1]
         a2 = aCoul_self[atom2]
-        a12 =  sqrt((a1**2 + a2**2)/2)
+        a12 =  np.sqrt((a1**2 + a2**2)/2)
         BornA = a12*np.sqrt(np.pi)
         BornAs.update({(atom1,atom2): BornA})
         if all([charges[atom1], charges[atom2]]) != 0.:
