@@ -139,17 +139,18 @@ IsFixedBond = {('A','A-'):[False,False,True], ('A','A'):[False,False,True], ('A-
 
 #Pair interaction
 #use spline or LJGauss for pair?
-UseLJGauss = False
+UseLJGauss = True
 
-Cut = 8.5 
+Cut = 8.
 
 #Gauss
 #number of Gaussians for each pair type, if set {('All', 'All': n)}, all pairs have n Gaussians
 NGaussDicts = {('All','All'): 1}
 
 #Initial B
-B0 = 20. #initial B for pair types that are not HOH-HOH
-BHOH_HOH = 18.69 
+B0 = 0.5
+u0_HOH_HOH = 15.1
+BHOH_HOH = u0_HOH_HOH/(2 * np.pi * (aevs_self['HOH']**2+aevs_self['HOH']**2))**(3./2.) #B = u0/(2pi(ai^2+j^2))^3/2
 LJGDist0 = 0.
 LJGSigma = 1.
 LJGEpsilon = 0.
@@ -169,7 +170,7 @@ FixedSpline = False
 
 #Smeared Coul
 SmearedCoulParams = {}
-EwaldCoef = 2.4
+EwaldCoef = 2.4 #2.31
 SCoulShift = True
 FixedCoef = True
 FixedBornA = True
@@ -221,7 +222,7 @@ else:
         CGtrajs[i] = CGtraj
         BoxLs.append(CGtraj.FrameData['BoxL'])    
 """Calculate forcefield parameters. This will likely to change"""
-#get mixed term of aev and calculate kappa parameter for LJGauss, k = 1/(4aev^2)
+#get mixed term of aev and calculate kappa parameter for LJGauss, k = 1/(2 (ai^2+aj^2))
 #Born radii = a_Coul * sqrt(pi)
 aevs = {}
 ks = {}
@@ -235,10 +236,10 @@ if UseLJGauss:
             atom2 = UniqueCGatomTypes[j]
             a1 = aevs_self[atom1]
             a2 = aevs_self[atom2]
-            amean = np.mean([a1,a2])
-            kappa = 1/(4*amean**2)
-            aevs.update({(atom1,atom2): amean})
-            ks.update({(atom1,atom2): 1/(4*amean**2)})
+            a12 =  sqrt((a1**2 + a2**2)/2)
+            kappa = 1/(2*(a1**2 + a2**2))
+            aevs.update({(atom1,atom2): a12})
+            ks.update({(atom1,atom2): kappa})
             #add param if this pair has not been added to param dictionary
             if not (atom1,atom2) in LJGaussParams.keys() and not (atom2,atom1) in LJGaussParams.keys():
                 if (atom1,atom2) == ('HOH','HOH'):
@@ -266,8 +267,8 @@ for i in range(len(UniqueCGatomTypes)):
         atom2 = UniqueCGatomTypes[j]
         a1 = aCoul_self[atom1]
         a2 = aCoul_self[atom2]
-        amean = np.mean([a1,a2])
-        BornA = amean*np.sqrt(np.pi)
+        a12 =  sqrt((a1**2 + a2**2)/2)
+        BornA = a12*np.sqrt(np.pi)
         BornAs.update({(atom1,atom2): BornA})
         if all([charges[atom1], charges[atom2]]) != 0.:
             if not (atom1,atom2) in SmearedCoulParams.keys() and not (atom2,atom1) in SmearedCoulParams.keys():
@@ -314,7 +315,7 @@ for i, MolTypesDict in enumerate(MolTypesDicts):
     NAtoms.append(Sys.NAtom)
     NMols.append(Sys.NMol)
 
-"""Run Optimization"""
+"""Run Optimzation"""
 # Just always using the OptimizeMultiTrajClass
 Weights = [1.]*len(Opts)
 

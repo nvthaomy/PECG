@@ -36,34 +36,37 @@ else:
 # energy: kT
 # pressure: kT/a_water**3
 """TOPOLOGY"""
-AAtrajs = ['trajectory_xp0.1_N12_f1_V157_LJPME_298K_NVT_Uext0.dcd']
-AAtops = ['AA12_f1_opc_gaff2_w0.13.parm7']
-stride = 1000
+AAtrajs = ['trajectory298.dcd']
+AAtops = ['AA12_f0_opc_gaff2_w0.13.parm7']
+stride = 2
 #map AA residue to CG bead name
 nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
                'ATP':'A', 'AHP':'A', 'AP': 'A', 'ATD': 'A-', 'AHD': 'A-', 'AD': 'A-',
                'NTP':'B+', 'NHP':'B+', 'NP': 'B+', 'NTD': 'B', 'NHD': 'B', 'ND': 'B'}
-CGtrajs = ['trajectory_xp0.1_N12_f1_V157_LJPME_298K_NVT_Uext0_mapped.lammpstrj.gz']
+CGtrajs = []
 #CGtrajs = ['trajectory_xp01_N12_f0_V157_LJPME_298K_NVT_Uext0_mapped.lammpstrj.gz']
 #provide UniqueCGatomTypes if CGtrajs is not an empty list
-UniqueCGatomTypes = ['A-','Na+','HOH']
+UniqueCGatomTypes = ['PAA','HOH']
 
 #name of molecules in systems
 #must in the right sequence as molecules in the trajectory
-MolNamesList = [['PAA','Na+','HOH']]
+MolNamesList = [['PAA','HOH']]
 # nSys x molecule types   
-MolTypesDicts = [{'PAA':['A-','A-']*6,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
+MolTypesDicts = [{'PAA':['A','A']*6,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
 # number of molecules for each molecule type, nSys x molecule types
-NMolsDicts = [{'PAA':15,'Na+': 180,'Cl-':0,'HOH':4610}]
+NMolsDicts = [{'PAA':15,'Na+': 0,'Cl-': 0,'HOH': 4728}]
 charges = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0,'A-': -1., 'B': 0., 'B-': 1.}
+#charges = {'Na+': 0., 'Cl-': 0., 'HOH': 0., 'A': 0,'A-': 0., 'B': 0., 'B-': 0.}
+
 chargesNeutral = {'Na+': 0., 'Cl-': 0., 'HOH': 0., 'A': 0,'A-': 0., 'B': 0., 'B-': 0.}
+#chargesNeutral = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0,'A-': -1., 'B': 0., 'B-': 1.}
 Name = 'PAA'
 
 """INTEGRATION PARAMS"""
 #real units: dt (ps), temp (K), pressure (atm)
-dt = 0.0001 
+dt = 0.05
 TempSet = [1.]
-PresSet = [] #enter values to enable NPT
+PresSet = [8.52] #enter values to enable NPT
 
 PresSet = np.array(PresSet)
 #PresSet *= 101325. #joules/m**3
@@ -72,14 +75,14 @@ PresSet = np.array(PresSet)
 IntParams = {'TimeStep': dt, 'LangevinGamma': 1/(100*dt)}
 
 """SREL OPT"""
-UseLammps = True
-UseOMM = False
+UseLammps = False
+UseOMM = True
 UseSim = False
 ScaleRuns = True
 StepScales = [] #set to empty if don't want to scale steps
-StepsEquil =5000
-StepsProd = 50000
-StepsStride = 100
+StepsEquil = 100./dt
+StepsProd = 2000./dt
+StepsStride = 40 #100
 WeightSysByNMol = False
 WeightSysByNAtom = True
 
@@ -99,7 +102,7 @@ aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4
 aCoul_self = aevs_self.copy()
 
 #BondParams: (atom1,atom2):[Dist0,FConst,Label], FConts = kcal/mol/Angstrom**2
-BondParams = {('A-','A-'):[1., 50, 'BondA-_A-']}
+BondParams = {('A','A'):[1., 50., 'BondA_A']}
 #{('A','A-'):[4., 50*kTkcalmol, 'BondA_A-'], ('A','A'):[4., 50*kTkcalmol, 'BondA_A'],
 #               ('B','B+'):[4., 50*kTkcalmol, 'BondB_B+'], ('B','B'):[4., 50*kTkcalmol, 'BondB_B']}
 #whether to fix a parameter
@@ -110,14 +113,15 @@ IsFixedBond = {('A','A-'):[False,False,True], ('A','A'):[False,False,True], ('A-
 UseLJGauss = True
 
 #set cut to be 5 * the largest aev
-Cut = 8.5 #5 * np.max(aevs_self.values())
+Cut = 8. #5 * np.max(aevs_self.values())
 
 #Gauss
 #number of Gaussians for each pair type
 NGaussDicts = {('All','All'): 1}
 #Initial B
-B0 = 20. 
-BHOH_HOH = 18.69 
+B0 = 0.5
+u0_HOH_HOH = 15.1
+BHOH_HOH = u0_HOH_HOH/(2 * np.pi * (aevs_self['HOH']**2+aevs_self['HOH']**2))**(3./2.) #B = u0/(2pi(ai^2+j^2))^3/2
 LJGDist0 = 0.
 LJGSigma = 1.
 LJGEpsilon = 0.
@@ -141,8 +145,8 @@ FixedSpline = False
 SmearedCoulParams = {}
 EwaldCoef = 2.4
 SCoulShift = True
-FixedCoef = True
-FixedBornA = True
+FixedCoef = False
+FixedBornA = False
 IsFixedCharge = True
 
 #Ewald params
@@ -150,20 +154,23 @@ EwaldParams = {'ExcludeBondOrd': 0, 'Cut': Cut, 'Shift': True, 'Label': 'EW', 'C
 
 #External Potential, ExtPot can be list of many external potentials
 UConst = 0.
-ExtPot = {"UConst": UConst, "NPeriods": 1, "PlaneAxis": 2, "PlaneLoc": 0., 'AtomTypes':'HOH',"Label":"UExtSin"}
+ExtPot0 = {"UConst": UConst, "NPeriods": 1, "PlaneAxis": 2, "PlaneLoc": 0., 'AtomTypes':'Na+',"Label":"UExtSin_Na"}
+ExtPot1 = {"UConst": UConst, "NPeriods": 1, "PlaneAxis": 2, "PlaneLoc": 0., 'AtomTypes':'Cl-',"Label":"UExtSin_Cl"}
+ExtPot = [ExtPot0,ExtPot1]
 
 # Default Simulation Package Settings
+sim.export.lammps.SkinDistance = 1.
 sim.export.lammps.NeighOne = 8000
 sim.export.lammps.UseTable2 = True
 sim.export.lammps.InnerCutoff = 1.e-6
 sim.export.lammps.NPairPotentialBins = 1000
 sim.export.lammps.LammpsExec = 'lmp_omp'
 sim.export.lammps.UseLangevin = True
-sim.export.lammps.OMP_NumThread = 8 
+sim.export.lammps.OMP_NumThread = 6
 sim.export.lammps.TableInterpolationStyle = 'spline' # More robust than spline for highly CG-ed systems
 sim.srel.optimizetrajlammps.LammpsDelTempFiles = False
 sim.srel.optimizetrajlammps.UseLangevin = True
-sim.export.omm.platformName = 'OpenCL' # or 'OpenCL' or 'GPU' or 'CUDA'
+#sim.export.omm.platformName = 'OpenCL' # or 'OpenCL' or 'GPU' or 'CUDA'
 sim.export.omm.device = -1 #-1 is default, let openmm choose its own platform.
 sim.export.omm.NPairPotentialKnots = 500 #number of points used to spline-interpolate the potential
 sim.export.omm.InnerCutoff = 0.001 #0.001 is default. Note that a small value is not necessary, like in the lammps export, because the omm export interpolates to zero
@@ -191,7 +198,7 @@ else:
         CGtrajs[i] = CGtraj
         BoxLs.append(CGtraj.FrameData['BoxL'])    
 """Calculate forcefield parameters. This will likely to change"""
-#get mixed term of aev and calculate kappa parameter for LJGauss, k = 1/(4aev^2)
+#get mixed term of aev and calculate kappa parameter for LJGauss, k = 1/(2 (ai^2+aj^2))
 #Born radii = a_Coul * sqrt(pi)
 aevs = {}
 ks = {}
@@ -203,10 +210,10 @@ if UseLJGauss:
             atom2 = UniqueCGatomTypes[j]
             a1 = aevs_self[atom1]
             a2 = aevs_self[atom2]
-            amean = np.mean([a1,a2])
-            kappa = 1/(4*amean**2)
-            aevs.update({(atom1,atom2): amean})
-            ks.update({(atom1,atom2): 1/(4*amean**2)})
+            a12 =  sqrt((a1**2 + a2**2)/2)
+            kappa = 1/(2*(a1**2 + a2**2))
+            aevs.update({(atom1,atom2): a12})
+            ks.update({(atom1,atom2): kappa})
             #add param if this pair has not been added to param dictionary
             if not (atom1,atom2) in LJGaussParams.keys() and not (atom2,atom1) in LJGaussParams.keys():
                 if (atom1,atom2) == ('HOH','HOH'):
@@ -224,7 +231,7 @@ else:
         for j in range(len(UniqueCGatomTypes)):
             atom1 = UniqueCGatomTypes[i]
             atom2 = UniqueCGatomTypes[j]
-            if not (atom1,atom2) in PSplineParams.keys() and not (atom2,atom1) in PSplineParams.keys():
+          (a1**2 + a2**2)  if not (atom1,atom2) in PSplineParams.keys() and not (atom2,atom1) in PSplineParams.keys():
                 PSplineParams.update({(atom1,atom2): [PSplineNKnot, Cut, NonbondEneSlopeInit, 'PSpline{}_{}'.format(atom1,atom2), FixedSpline]})
 #SmearedCoulParams: (atom1,atom2): [BornA, Cut, Shift, FixedCoef,FixedBornA, Label, Coef]
 BornAs = {}
@@ -234,8 +241,8 @@ for i in range(len(UniqueCGatomTypes)):
         atom2 = UniqueCGatomTypes[j]
         a1 = aCoul_self[atom1]
         a2 = aCoul_self[atom2]
-        amean = np.mean([a1,a2])
-        BornA = amean*np.sqrt(np.pi)
+        a12 =  sqrt((a1**2 + a2**2)/2)
+        BornA = a12*np.sqrt(np.pi)
         BornAs.update({(atom1,atom2): BornA})
         if all([charges[atom1], charges[atom2]]) != 0.:
             if not (atom1,atom2) in SmearedCoulParams.keys() and not (atom2,atom1) in SmearedCoulParams.keys():
