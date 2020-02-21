@@ -274,19 +274,23 @@ def getStats(trajFile, top, NP, ThermoLog, DOP = 10, NAtomsPerChain = None,
              fi = 'lammps', obs = None, cols = None,
              res0Id = 0, stride = 1, autowarmup = True, warmup = 100, plot = False):
     
-    RgAvg,RgStd,RgErr,RgCorrTime,RgCorrTimeErr,RgNUncorrSamples, ReeAvg,ReeStd,ReeErr,ReeCorrTime,ReeCorrTimeErr,ReeNUncorrSamples = getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = NAtomsPerChain, 
-             RgDatName = RgDatName, ReeDatName = ReeDatName, RgStatOutName = RgStatOutName, Ext=Ext,  
+    txt = '#  Avg.\tS.D.\tStdErr.\tCorr.\tStdErr.\tUncorr.Samples\n'
+    if NP > 0:
+        RgAvg,RgStd,RgErr,RgCorrTime,RgCorrTimeErr,RgNUncorrSamples, ReeAvg,ReeStd,ReeErr,ReeCorrTime,ReeCorrTimeErr,ReeNUncorrSamples = getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = NAtomsPerChain,
+             RgDatName = RgDatName, ReeDatName = ReeDatName, RgStatOutName = RgStatOutName, Ext=Ext,
              res0Id = res0Id, stride = stride, autowarmup = autowarmup, warmup = warmup, plot = plot)
+        txt += ' Rg\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%i' %(RgAvg,RgStd,RgErr,RgCorrTime,RgCorrTimeErr,RgNUncorrSamples)
+        txt += '\n Ree\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%i' %(ReeAvg,ReeStd,ReeErr,ReeCorrTime,ReeCorrTimeErr,ReeNUncorrSamples)
+
     print('reading thermo file {}'.format(ThermoLog))
     obsID, Stats = getThermo(ThermoLog, fi = fi, obs = obs, cols = cols, autowarmup = autowarmup, warmup = warmup)
     
-    txt = '#  Avg.\tS.D.\tStdErr.\tCorr.\tStdErr.\tUncorr.Samples\n'
-    txt += ' Rg\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%i' %(RgAvg,RgStd,RgErr,RgCorrTime,RgCorrTimeErr,RgNUncorrSamples)
-    txt += '\n Ree\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%i' %(ReeAvg,ReeStd,ReeErr,ReeCorrTime,ReeCorrTimeErr,ReeNUncorrSamples)
-
     for i, obs in enumerate(obsID):
         Avg,Std,CorrTime,Err,NUncorrSamples = Stats[i]
-        txt +=  '\n %s\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%s\t%i' %(obs, Avg, Std, Err, CorrTime, 'N/A',NUncorrSamples)
+        try:
+            txt +=  '\n %s\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%s\t%i' %(obs, Avg, Std, Err, CorrTime, 'N/A',NUncorrSamples)
+        except:
+            txt +=  '\n %s\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%s\t%s' %(obs, Avg, Std, Err, CorrTime, 'N/A',NUncorrSamples)
     f = open(StatsFName, 'w')
     f.write(txt)
 

@@ -9,6 +9,7 @@ def getMap(traj, top, nameMap):
     import mdtraj as md
     traj = md.load(traj, top = top)
     top = traj.topology
+    Mass1List = []
     AAatomId = []
     AAres = []
     CGatomTypes = []
@@ -17,9 +18,12 @@ def getMap(traj, top, nameMap):
         CGatomTypes.append(nameMap[res.name])
         #get atom indices of all atoms in this residue
         Atoms1 = []
+        Mass1 = []
         for atom in res.atoms:
             Atoms1.append(atom.index)
+            Mass1.append(atom.element.mass)
         AAatomId.append(Atoms1)
+        Mass1List.append(Mass1)
     Mol = []
     for bond in top.bonds:
         atom1,atom2 = bond[0],bond[1]
@@ -29,7 +33,7 @@ def getMap(traj, top, nameMap):
         if res1 != res2 and not res2 in Mol:
             Mol.append(res2)
             
-    return AAatomId, CGatomTypes, AAres
+    return AAatomId, CGatomTypes, AAres, Mass1List 
 
 def convertTraj(traj, top, lengthScale = 1., stride = 1, outTrajExt = '.lammpstrj'):
     """convert trajectory to a specified format and scale box with lengthScale"""
@@ -48,7 +52,7 @@ def mapTraj(traj, top, nameMap, lengthScale, stride=1):
     """ CGatomTypes: 1 by n list of CG atom types
         AAatomID: n by x list of indices of AA atoms in CG beads
         lengthScale (nanometer): divide positions and box dimensions by this scale, for conversion between real and dimensionless units"""
-    AAatomId, CGatomTypes, AAres = getMap(traj,top,nameMap)
+    AAatomId, CGatomTypes, AAres, Mass1List = getMap(traj, top, nameMap)
     AtomTypes, counts = np.unique(CGatomTypes, return_counts = True)
     # ===== create mapped object =====
     print("\n ===== Creating Index Mapper =====")
@@ -56,7 +60,8 @@ def mapTraj(traj, top, nameMap, lengthScale, stride=1):
     for i, CGatomType in enumerate(CGatomTypes):
         Atoms1 = AAatomId[i]
         Atom2 = i
-        this_Map = sim.atommap.AtomMap(Atoms1 = Atoms1, Atom2 = Atom2)
+        Mass1 = Mass1List[i]
+        this_Map = sim.atommap.AtomMap(Atoms1 = Atoms1, Atom2 = Atom2, Mass1=Mass1)
         Map += [this_Map]
     
     print("\n ===== Converting AA traj to lammpstrj format  =====")

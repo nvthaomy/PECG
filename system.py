@@ -71,7 +71,7 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
 
 
     #initial positions and velocities
-#    sim.system.positions.CubicLattice(Sys)
+    sim.system.positions.CubicLattice(Sys)
     sim.system.velocities.Canonical(Sys, Temp = Temp)
     Sys.TempSet = Temp
     Sys.PresSet = Pres
