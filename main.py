@@ -61,9 +61,9 @@ else:
 
 """TOPOLOGY"""
 #map AA traj to CG traj
-AAtrajs = ['trajectory_xp0.1_N12_f0_V157_LJPME_298K_NVT_Uext0.dcd']
-AAtops = ['AA12_f0_opc_gaff2_w0.13.parm7']
-stride = 1000
+AAtrajs = ['/home/mnguyen/PE/PAA/AA/xp0.1_N12_f0_197NaCl_V328_LJPME_298K/f0/w0.13/NPT/trajectory298.dcd']
+AAtops = ['/home/mnguyen/PE/PAA/AA/xp0.1_N12_f0_197NaCl_V328_LJPME_298K/f0/w0.13/NPT/AA12_f0_opc_gaff2_w0.13_197Na+Cl-.parm7']
+stride = 4
 
 #map AA residue to CG bead name
 nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
@@ -71,29 +71,31 @@ nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
                'NTP':'B+', 'NHP':'B+', 'NP': 'B+', 'NTD': 'B', 'NHD': 'B', 'ND': 'B'}
 
 #CG trajectories, if CGtrajs = [] will map AA traj, else will use provided CGtrajs
-CGtrajs = ['trajectory_xp0.1_N12_f1_V157_LJPME_298K_NVT_Uext0_mapped.lammpstrj.gz']
+CGtrajs = []
 #provide UniqueCGatomTypes if CGtrajs is not empty
-UniqueCGatomTypes = ['A-','Na+']
+UniqueCGatomTypes = ['A','Na+','Cl-','HOH']
 
 #name of molecules in systems
 #must in the right sequence as molecules in the trajectory
-MolNamesList = [['PAA','Na+']]
+MolNamesList = [['PAA','Na+','Cl-','HOH']]
 
 # Topology of molecules in all systems: nSys x molecule types   
-MolTypesDicts = [{'PAA':['A-','A-']*6,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
+MolTypesDicts = [{'PAA':['A','A']*6,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
 
 # number of molecules for each molecule type, nSys x molecule types
-NMolsDicts = [{'PAA':15,'Na+': 180,'Cl-':0,'HOH':0}]
+NMolsDicts = [{'PAA':31,'Na+': 197,'Cl-': 197,'HOH': 9849}]
 
 charges = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0,'A-': -1., 'B': 0., 'B-': 1.}
-Name = 'PAA'
+chargesNeutral = {'Na+': 0., 'Cl-': 0., 'HOH': 0., 'A': 0,'A-': 0., 'B': 0., 'B-': 0.}
+
+Name = 'PAA0_nacl'
 
 """INTEGRATION PARAMS"""
 #real units: dt (ps), temp (K), pressure (atm)
-dt = 0.0001
+dt = 0.05
 #TempSet and PresSet are lists 
 TempSet = [1.]
-PresSet = [] #enter values to enable NPT
+PresSet = [8.52] #enter values to enable NPT
 
 PresSet = np.array(PresSet)
 #PresSet *= 101325. #joules/m**3
@@ -102,14 +104,15 @@ PresSet = np.array(PresSet)
 IntParams = {'TimeStep': dt, 'LangevinGamma': 1/(100*dt)}
 
 """SREL OPT"""
-UseLammps = True
-UseOMM = False
+SrelOnNeutralSys = True
+UseLammps = False
+UseOMM = True
 UseSim = False
 ScaleRuns = True
 StepScales = [] #set to empty if don't want to scale steps
-StepsEquil =10000
-StepsProd = 200000
-StepsStride = 100
+StepsEquil = 100./dt
+StepsProd = 2000./dt
+StepsStride = 200
 WeightSysByNMol = False
 WeightSysByNAtom = True
 
@@ -122,14 +125,18 @@ SteepestIter=0
 """FORCEFIELD"""
 """fix self interaction of water to value that reproduce the compressibility of pure water, u0 = 18.69kT, B = u0/(4 pi aev**2)**(3/2)"""
 SysLoadFF = True
-ForceFieldFile = 'PAA_ff_init.dat'
+ForceFieldFile = 'ff_init.dat'
+
+#fix Gaussian params of these pairs
+fixPairs = [('HOH','HOH'),('A','A'),('A','HOH'),('Na+','Na+'),('Cl-','Cl-'),('Na+','Cl-'),('Na+','HOH'),('Cl-','HOH')]
+print('fixing Gaussian parameters of pairs {}'.format(fixPairs))
 
 #Excluded volume size for each atom type: a_ev = 1/(number density of this CG atom type)
 aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4.5/3.1, 'B-': 4.5/3.1}
 aCoul_self = aevs_self.copy()
 
 #BondParams: (atom1,atom2):[Dist0,FConst,Label], FConts = kcal/mol/Angstrom**2
-BondParams = {} #{('A-','A-'):[1., 2000, 'BondA-_A-']}
+BondParams = { ('A','A'):[1.1, 50*kTkcalmol, 'BondA_A']} #{('A-','A-'):[1., 2000, 'BondA-_A-']}
 #{('A','A-'):[4., 50*kTkcalmol, 'BondA_A-'], ('A','A'):[4., 50*kTkcalmol, 'BondA_A'],
 #               ('B','B+'):[4., 50*kTkcalmol, 'BondB_B+'], ('B','B'):[4., 50*kTkcalmol, 'BondB_B']}
 
@@ -170,18 +177,18 @@ FixedSpline = False
 
 #Smeared Coul
 SmearedCoulParams = {}
-EwaldCoef = 2.4 #2.31
+EwaldCoef = 2.31
 SCoulShift = True
-FixedCoef = True
-FixedBornA = True
+FixedCoef = False
+FixedBornA = False
 IsFixedCharge = True
 
 #Ewald params
 EwaldParams = {'ExcludeBondOrd': 0, 'Cut': Cut, 'Shift': True, 'Label': 'EW', 'Coef': EwaldCoef, 'EwaldNAtom': None, 'FixedCoef': FixedCoef}
 
 #External Potential, ExtPot can be list of many external potentials
-UConst = 0.
-ExtPot = {"UConst": UConst, "NPeriods": 1, "PlaneAxis": 2, "PlaneLoc": 0., 'AtomTypes':'HOH',"Label":"UExtSin"}
+UConst = 0.0 
+ExtPot = {"UConst": UConst, "NPeriods": 1, "PlaneAxis": 2, "PlaneLoc": 0., 'AtomTypes':'A',"Label":"UExtSin"}
 
 # Default Simulation Package Settings
 sim.export.lammps.NeighOne = 8000
@@ -243,8 +250,13 @@ if UseLJGauss:
             #add param if this pair has not been added to param dictionary
             if not (atom1,atom2) in LJGaussParams.keys() and not (atom2,atom1) in LJGaussParams.keys():
                 if (atom1,atom2) == ('HOH','HOH'):
+                    print('fix params of pair {}'.format((atom1,atom2)))
                     LJGaussParams.update({(atom1,atom2): [BHOH_HOH, kappa, LJGDist0, Cut, LJGSigma, LJGEpsilon, 'LJGauss{}_{}'.format(atom1,atom2)]})
                     IsFixedLJGauss.update({(atom1,atom2): [True, True, FixedDist0, FixedSigma, FixedEpsilon, True]})
+                elif (atom1,atom2) in fixPairs or (atom2,atom1) in fixPairs:
+                    print('fix params of pair {}'.format((atom1,atom2)))
+                    LJGaussParams.update({(atom1,atom2): [B0, kappa, LJGDist0, Cut, LJGSigma, LJGEpsilon, 'LJGauss{}_{}'.format(atom1,atom2)]})
+                    IsFixedLJGauss.update({(atom1,atom2): [True, True, True, True, True, True]}) 
                 else:
                     LJGaussParams.update({(atom1,atom2): [B0, kappa, LJGDist0, Cut, LJGSigma, LJGEpsilon, 'LJGauss{}_{}'.format(atom1,atom2)]})
                     IsFixedLJGauss.update({(atom1,atom2): [FixedB, FixedKappa, FixedDist0, FixedSigma, FixedEpsilon, True]})
@@ -306,9 +318,18 @@ for i, MolTypesDict in enumerate(MolTypesDicts):
     else:
         StepScale = None
     #create system and add forcefield, then create optimizer for each system
-    Sys = system.CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
+    if SrelOnNeutralSys:
+        print('Optimizing params in neutral system but run MD on system with full electrostatics')
+        ElecSys = system.CreateSystem(SysName+'Elec', BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
                               NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units)
-    Opt = optimizer.CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty)
+        Sys = system.CreateSystem(SysName+'Neutral', BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, chargesNeutral, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,          
+                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units) 
+    else:
+        Sys = system.CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
+                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units)
+        ElecSys = None
+
+    Opt = optimizer.CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty,ElecSys = ElecSys)
 
     Opts.append(Opt)
     Systems.append(Sys)
