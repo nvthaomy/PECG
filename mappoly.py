@@ -38,13 +38,20 @@ def getMap(traj, top, nameMap):
 def convertTraj(traj, top, lengthScale = 1., stride = 1, outTrajExt = '.lammpstrj'):
     """convert trajectory to a specified format and scale box with lengthScale"""
     import mdtraj as md
-    outTraj = '.'.join(traj.split('.')[:-1]) + outTrajExt
+    import os,shutil
+    #to make traj in the current dir
+    cwd = os.getcwd()
+    outTraj = traj.split('/')[-1]
+    outTraj = '.'.join(outTraj.split('.')[:-1]) + outTrajExt
     traj = md.load(traj, top = top, stride = stride)
     if lengthScale != 1.:
         print('Scaling positions and box size by 1/{}'.format(lengthScale))
     traj.xyz /= lengthScale
     traj.unitcell_lengths /= lengthScale
     traj.save(outTraj)
+    shutil.move(outTraj,os.path.join(cwd,outTraj))
+    print('moving traj to {}'.format(os.path.join(cwd,outTraj))) 
+    outTraj = os.path.join(cwd,outTraj)
     return outTraj
 
 def mapTraj(traj, top, nameMap, lengthScale, stride=1):
@@ -67,7 +74,6 @@ def mapTraj(traj, top, nameMap, lengthScale, stride=1):
     print("\n ===== Converting AA traj to lammpstrj format  =====")
     traj = convertTraj(traj, top, lengthScale = lengthScale, stride = stride, outTrajExt = '.lammpstrj')
     outTraj = traj.split('.lammpstrj')[0] + '_mapped.lammpstrj.gz'    
-    
     # ===== read AA traj =====
     print("\n ===== Reading scaled AA Traj =====")
     Trj = pickleTraj(traj)
@@ -77,7 +83,7 @@ def mapTraj(traj, top, nameMap, lengthScale, stride=1):
     print("\n ===== Mapping and Writing Trajectory =====")
     MappedTrj = sim.traj.Mapped(Trj, Map, AtomNames = CGatomTypes, BoxL = BoxL)
     #MappedTrj = sim.traj.Mapped(Trj, Map, AtomNames = AtomTypes, BoxL = BoxL)
-    
+    print('mapped traj name {}'.format(outTraj)) 
     # ===== convert to lammps =====
     print("\n ===== Converting to LAMMPS =====")
     sim.traj.base.Convert(MappedTrj, sim.traj.LammpsWrite, FileName = outTraj, Verbose = True)    
