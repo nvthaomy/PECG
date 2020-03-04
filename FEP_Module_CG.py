@@ -17,6 +17,7 @@ import sys
 """
    Adding new positions of additional molecule at the end of the base trajectory
    M.N: Modified for insertion in NPT (record box lengths in x y z and in every frames)
+   3/3/2020: update periodic vector every frame according to box vectors in traj file
 """
 
 ''' ProgressBar Class '''
@@ -547,8 +548,6 @@ class FEP:
         '''
         NumberFrames = traj.n_frames
         atom_indices = range(traj.n_atoms) 
-        BoxL = traj[0].unitcell_vectors[0][0][0]
-        box =  traj[0].unitcell_vectors[0]
         PotEne_State0 = [] # used if rerunning the ref. state as well.
         PotEne_Data = [] 
         waterId = None        
@@ -602,6 +601,7 @@ class FEP:
         for i in range(NumberFrames):
             PBar.Update(i)
             time_start = time.time() # time how long it takes
+            box =  traj[i].unitcell_vectors[0]
             # update the initial positions, positions for additional NaCl pair is still 0
             xyz[0][0 : -1*int(tot_atoms_added)] = traj[i].xyz[0]
             
@@ -666,8 +666,6 @@ class FEP:
         '''
         
         NumberFrames = traj.n_frames
-        BoxL = traj[0].unitcell_vectors[0][0][0]
-        box =  traj[0].unitcell_vectors[0]        
         NumberMolecules = traj[0].n_residues
         PotEne_Data = []
         
@@ -740,7 +738,8 @@ class FEP:
             PBar.Update(i)
             
             time_start = time.time() # time how long it takes
-            
+            box =  traj[i].unitcell_vectors[0]
+ 
             temp_frame = traj[i].xyz[0]
             if ReRunRefState:
                 simulation0.context.setPeriodicBoxVectors(box[0],box[1],box[2])
@@ -1063,8 +1062,6 @@ class FEP:
                 elif self.number_states == 2 and traj_index == 1: # Have actual state 1 trajectory (N+1) and need to reweight to N 
                     PotEne_Data_1to0_List = self.PerformDeletions(traj,self.states_list[1],self.states_list[0],self.NumberDeletionsPerFrame,self.thermo_files_list[1],self.ReRunRefState)
                 
-                self.dU_0to1 = PotEne_Data_0to1_List
-                self.dU_1to0 = PotEne_Data_1to0_List
                 
             ''' PRESSURE CALCULATION '''
             if self.derivative == 'volume': # calculating pressure
@@ -1107,5 +1104,6 @@ class FEP:
                     
                 self.dU_0to1 = PotEne_Data_0to1_List # expansion
                 self.dU_1to0 = PotEne_Data_1to0_List # contraction    
-                
-            ''' ADD NEW CALCULATIONS HERE '''
+            #''' ADD NEW CALCULATIONS HERE '''        
+        self.dU_0to1 = PotEne_Data_0to1_List
+        self.dU_1to0 = PotEne_Data_1to0_List
