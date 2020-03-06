@@ -5,6 +5,9 @@ Created on Thu Dec 12 18:11:03 2019
 
 @author: my
 """
+import sys
+sys.path.append('/home/mnguyen/bin/PECG/')
+
 import sim, pickleTraj
 #import mappoly_implicit as mappoly
 import mappoly
@@ -70,6 +73,11 @@ nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
                'ATP':'A', 'AHP':'A', 'AP': 'A', 'ATD': 'A-', 'AHD': 'A-', 'AD': 'A-',
                'NTP':'B+', 'NHP':'B+', 'NP': 'B+', 'NTD': 'B', 'NHD': 'B', 'ND': 'B'}
 
+#if use different bead type for end monomers:
+#nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
+#               'ATP':'AE', 'AHP':'AE', 'AP': 'A', 'ATD': 'AE-', 'AHD': 'AE-', 'AD': 'A-',
+#               'NTP':'BE+', 'NHP':'BE+', 'NP': 'B+', 'NTD': 'BE', 'NHD': 'BE', 'ND': 'B'}
+
 #CG trajectories, if CGtrajs = [] will map AA traj, else will use provided CGtrajs
 CGtrajs = []
 #provide UniqueCGatomTypes if CGtrajs is not empty
@@ -85,8 +93,8 @@ MolTypesDicts = [{'PAA':['A','A']*6,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
 # number of molecules for each molecule type, nSys x molecule types
 NMolsDicts = [{'PAA':31,'Na+': 197,'Cl-': 197,'HOH': 9849}]
 
-charges = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0,'A-': -1., 'B': 0., 'B-': 1.}
-chargesNeutral = {'Na+': 0., 'Cl-': 0., 'HOH': 0., 'A': 0,'A-': 0., 'B': 0., 'B-': 0.}
+charges         = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0, 'A-': -1., 'B': 0., 'B+': 1., 'AE':0., 'BE':0., 'AE-': -1., 'BE+':1.}
+chargesNeutral  = {'Na+': 0., 'Cl-': 0.,  'HOH': 0., 'A': 0, 'A-': 0.,  'B': 0., 'B+': 0., 'AE':0., 'BE':0., 'AE-': 0. , 'BE+':0.}
 
 Name = 'PAA0_nacl'
 
@@ -132,7 +140,7 @@ fixPairs = [('HOH','HOH'),('A','A'),('A','HOH'),('Na+','Na+'),('Cl-','Cl-'),('Na
 print('fixing Gaussian parameters of pairs {}'.format(fixPairs))
 
 #Excluded volume size for each atom type: a_ev = 1/(number density of this CG atom type)
-aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4.5/3.1, 'B-': 4.5/3.1}
+aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4.5/3.1, 'B-': 4.5/3.1, 'AE':4.5/3.1, 'AE-': 4.5/3.1, 'BE': 4.5/3.1, 'BE+':4.5/3.1}
 aCoul_self = aevs_self.copy()
 
 #BondParams: (atom1,atom2):[Dist0,FConst,Label], FConts = kcal/mol/Angstrom**2
@@ -142,8 +150,9 @@ BondParams = { ('A','A'):[1.1, 50*kTkcalmol, 'BondA_A']} #{('A-','A-'):[1., 2000
 
 #whether to fix a parameter [Dist0,FConst,Label]
 IsFixedBond = {('A','A-'):[False,False,True], ('A','A'):[False,False,True], ('A-','A-'):[False,False,True],
-               ('B','B+'):[False,False,True], ('B','B'):[False,False,True], ('B+','B+'):[False,False,True]}
-
+               ('B','B+'):[False,False,True], ('B','B'):[False,False,True], ('B+','B+'):[False,False,True],
+               ('A','AE'):[False,False,True], ('A','AE-'):[False,False,True], ('A-','AE'):[False,False,True], ('A-','AE-'):[False,False,True],
+               ('B','BE'):[False,False,True], ('B','BE+'):[False,False,True], ('B+','BE'):[False,False,True], ('B+','BE+'):[False,False,True]}
 #Pair interaction
 #use spline or LJGauss for pair?
 UseLJGauss = True
