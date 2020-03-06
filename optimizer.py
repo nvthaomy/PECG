@@ -9,7 +9,7 @@ import sim
 import os
 import numpy as np
 
-def CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty):
+def CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty, ElecSys=None):
     # Perform atom mapping for specific system
     Map = sim.atommap.PosMap()
     print(Sys.Name)
@@ -33,7 +33,7 @@ def CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsPro
         Trj.AddAction(Int, StepFreq = StepsStride)
               
     Sys.ScaleBox(Sys.BoxL) # scale the system by the box
-    Opt = OptClass(Sys, Map, Beta = 1./Sys.TempSet, Traj = CGtraj, FilePrefix = '{}'.format(Sys.Name),
+    Opt = OptClass(Sys, Map, Beta = 1./Sys.TempSet, Traj = CGtraj, FilePrefix = '{}'.format(Sys.Name), ElecSys = ElecSys,
                         SaveLoadArgData = True, TempFileDir = os.getcwd(), UseTarHists=False)                        
     Opt.ConstrainNeutralCharge()
     # Set run times for optimization objects.
