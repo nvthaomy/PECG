@@ -17,33 +17,38 @@ export PATH="/home/mnguyen/miniconda3/envs/py2/bin/:$PATH"
 export PYTHONPATH=/home/mnguyen/bin/sim_git:$PYTHONPATH
 #python main.py
 
-ext=NaClUext2_
-Name="'nacl'"
-ff="'nacl_ff.dat'"
+ext=PAANPT_
+Name="'PAA'"
+ff="'PAA_ff.dat'"
 
-dirNameA=('0.5M' '1M' '3M' '5M')
-nNaA=(61 122 368 613)
-nClA=(61 122 368 613)
-nHOHA=(6708 6616 6247 5880)
-volA=(6840. 6840. 6840. 6840. )
+dirNameA=('N12' 'N24' 'N48' 'N60' 'N90')
+nPAAs=(15 8 12 10 7)
+nNaA=(0 0 0 0 0)
+nClA=(0 0 0 0 0)
+nHOHA=(4728 4728 15372 15372 15372)
+volA=(5270. 5300. 17078. 17119. 17219.)
+MolNamesList=["'PAA','HOH'"]
 
+PAAstructureA=(["'A'"]*12 ["'A'"]*24 ["'A'"]*48 ["'A'"]*60 ["'A'"]*90)
 #MD
-dt=0.1
+dt=0.05 #0.1
 P=8.52
 tau=6000.
 equilTau=100.
-Stride=20
-cut=6.
+Stride=40
+cut=8.
 UseOMM=True
 UseLammps=False
-OMP_NumThread=5
+OMP_NumThread=4
 OPENMM_CPU_THREADS=$OMP_NumThread
 #FEP
+
 FEPMolNames=["'Na+','Cl-'"]
 ThermoSlice=1
 TrajSlice=1
 nInsert=10
 nDelete=10
+FEPDir="'${nInsert}insert_NaCl'"
 
 #for converting traj to real unit
 #top="'nacl0_initial.pdb'"
@@ -51,16 +56,20 @@ nDelete=10
 #scale=3.1
 
 # get the length of the arrays
-length=${#nNaA[@]}
-echo $length 'concentration values'
+#length=${#nNaA[@]}
+length=${#nPAAs[@]}
+
+#echo $length 'concentration values'
 
 # do the loop
 for ((i=0;i<$length;i++)); do
-
+    nPAA=${nPAAs[$i]}
     nNa=${nNaA[$i]}
     nCl=${nClA[$i]}
     nHOH=${nHOHA[$i]}
     vol=${volA[$i]}
+    PAAstructure=${PAAstructureA[$i]}
+
     mydir=${dirNameA[$i]}
 #    mydir=${nNa}Na_${nCl}Cl_${nHOH}HOH
     mkdir $mydir
@@ -72,6 +81,10 @@ for ((i=0;i<$length;i++)); do
     sed -i "s/__nNa__/${nNa}/g" $mydir/MDmain.py 
     sed -i "s/__nCl__/${nCl}/g" $mydir/MDmain.py
     sed -i "s/__nHOH__/${nHOH}/g" $mydir/MDmain.py
+    sed -i "s/__nPAA__/${nPAA}/g" $mydir/MDmain.py
+    sed -i "s/__PAAstructure__/${PAAstructure}/g" $mydir/MDmain.py
+    sed -i "s/__MolNamesList__/${MolNamesList}/g" $mydir/MDmain.py
+
     sed -i "s/__vol__/${vol}/g" $mydir/MDmain.py
     sed -i "s/__dt__/${dt}/g" $mydir/MDmain.py     
     sed -i "s/__P__/${P}/g" $mydir/MDmain.py
@@ -87,6 +100,7 @@ for ((i=0;i<$length;i++)); do
     sed -i "s/__nInsert__/${nInsert}/g" $mydir/MDmain.py
     sed -i "s/__nDelete__/${nDelete}/g" $mydir/MDmain.py
     sed -i "s/__FEPMolNames__/${FEPMolNames}/g" $mydir/MDmain.py
+    sed -i "s/__FEPDir__/${FEPDir}/g" $mydir/MDmain.py
     sed -i "s/__equilTau__/${equilTau}/g" $mydir/MDmain.py
 
     sed -i "s/__OMP_NumThread__/${OMP_NumThread}/g" $mydir/pod.sh

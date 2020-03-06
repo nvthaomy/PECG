@@ -9,6 +9,8 @@ import sim, pickleTraj
 import system, optimizer, fepcg
 import numpy as np
 import MDAnalysis as mda
+import os,sys
+cwd = os.getcwd()
 
 """assume all atom indices in trajectory follow the same order as definition of MolTypes, NMons, and NMols
 To do:
@@ -47,11 +49,11 @@ BoxLs = [[L,L,L]]
 
 #name of molecules in systems
 #must in the right sequence as molecules in the trajectory
-MolNamesList = [['Na+','Cl-','HOH']]
+MolNamesList = [__MolNamesList__]
 # nSys x molecule types   
-MolTypesDicts = [{'PAA':['A']*90,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
+MolTypesDicts = [{'PAA':__PAAstructure__,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
 # number of molecules for each molecule type, nSys x molecule types
-NMolsDicts = [{'PAA':0,'Na+':__nNa__,'Cl-':__nCl__,'HOH':__nHOH__}]
+NMolsDicts = [{'PAA':__nPAA__,'Na+':__nNa__,'Cl-':__nCl__,'HOH':__nHOH__}]
 charges = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0,'A-': -1., 'B': 0., 'B-': 1.}
 
 Name = __Name__
@@ -90,7 +92,8 @@ StepsStride = __Stride__
 MDRestartFile = None #None: dont read restart file
 
 """FEP Params"""
-CalChemPot = True
+CalChemPot = False
+FEPDir = __FEPDir__
 FEPMolNames = __FEPMolNames__ #['HOH']
 ThermoSlice = __ThermoSlice__ 
 TrajSlice = __TrajSlice__
@@ -110,7 +113,7 @@ aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4
 aCoul_self = aevs_self.copy()
 
 #BondParams: (atom1,atom2):[Dist0,FConst,Label], FConts = kcal/mol/Angstrom**2
-BondParams = {}
+BondParams = {('A','A'):[1., 50., 'BondA_A']}
 #               ('B','B+'):[4., 50*kTkcalmol, 'BondB_B+'], ('B','B'):[4., 50*kTkcalmol, 'BondB_B']}
 #whether to fix a parameter
 IsFixedBond = {('A','A-'):[False,False,True], ('A','A'):[False,False,True], ('A-','A-'):[False,False,True],
@@ -293,8 +296,9 @@ for i, Sys in enumerate(Systems):
     Sys.Int.Run(10)
 
     NAtomsPerChain = len(MolTypesDicts[i]['PAA'])
+    DOP = len(MolTypesDicts[i]['PAA'])
     NP = NMolsDicts[i]['PAA']
-
+    DOP = len(MolTypesDicts[i]['PAA'])
     if UseSim and RunMD:
         fobj = open('{}_measures.dat'.format(Sys.Name), 'w')
         Sys.Measures.VerboseOutput(fobj = fobj, StepFreq=StepsStride)
@@ -323,7 +327,7 @@ for i, Sys in enumerate(Systems):
             gr.write(top)
          
             """Analyze"""
-            analysis.getStats(TrajFile, top, NP, ThermoLog, DOP = 12, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
+            analysis.getStats(TrajFile, top, NP, ThermoLog, DOP = DOP, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
               RgDatName = 'RgTimeSeries', ReeDatName = 'ReeTimeSeries',RgStatOutName = 'RgReeStats', Ext='.dat',  
               fi = 'lammps', obs = ['PotEng', 'Temp', 'Press'], cols = None,
               res0Id = 0, stride = 1, autowarmup = True, warmup = 100)
@@ -338,13 +342,14 @@ for i, Sys in enumerate(Systems):
                                                        WriteFreq = StepsStride)
 
             """Analyze"""
-            analysis.getStats(TrajFile, top, NP, ThermoLog, DOP = 12, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
+            analysis.getStats(TrajFile, top, NP, ThermoLog, DOP = DOP, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
               RgDatName = 'RgTimeSeries', ReeDatName = 'ReeTimeSeries',RgStatOutName = 'RgReeStats', Ext='.dat',
               fi = 'openmm', obs = [ 'Potential_Energy_(kJ/mole)',   'Kinetic_Energy_(kJ/mole)',   'Temperature_(K)',   'Box_Volume_(nm^3)',   'Density_(g/mL)'], cols = None,
               res0Id = 0, stride = 1, autowarmup = True, warmup = 100)
 
     '''Do FEP'''
     if CalChemPot:
+
         if UseOMM:
             ThermoFile = ThermoLog
             PEColId = 1
@@ -354,6 +359,14 @@ for i, Sys in enumerate(Systems):
             SetReRunRefState = True #always rerun lammps traj to make sure potential energy is in the correct unit
             PEColId = 1
         TopFile = top 
+
+        os.mkdir(FEPDir)
+        TrajFile =  os.path.join(cwd,TrajFile)
+        TopFile = os.path.join(cwd,TopFile)
+        ThermoFile = os.path.join(cwd,ThermoFile)
+        ForceFieldFile = os.path.join(cwd,ForceFieldFile)
+        os.chdir(FEPDir)
+        
         dF, dF_stderr, muExcess, nFrames = fepcg.FEP(Sys, FEPMolNames, ThermoSlice, TrajSlice, Warmup, TrajFile, TopFile, ThermoFile, nDraw, nInsert, nDelete,
                               SetReRunRefState, PEColId,
                               BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams, ForceFieldFile,

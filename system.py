@@ -23,9 +23,16 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
         AtomType = sim.chem.AtomType(AtomName, Mass = 1., Charge = Charge)
         AtomTypes.update({AtomName:AtomType})
     
+    #make dictionary to keep track of index use to set NMol
+    nextNMolId = {}
+    for MolName in MolNames:
+        if not MolName in nextNMolId.keys():
+            nextNMolId.update({MolName: 0})
     #need to create MolType in a right sequence to the trajectory
     for MolName in MolNames:  
-        if NMolsDict[MolName] > 0: 
+        if (NMolsDict[MolName] > 0 and not isinstance(NMolsDict[MolName],list)) or (isinstance(NMolsDict[MolName],list)): 
+            if isinstance(NMolsDict[MolName],list) and (not any(NMolsDict[MolName])or len(NMolsDict[MolName])==0):
+                Exception('Does not handle value of 0 if NMol is list. If is empty list, set to 0')
             AtomsInMol = []
             AtomNames = MolTypesDict[MolName]
             NMons.append(len(AtomNames))
@@ -33,6 +40,7 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
                 AtomsInMol.append(AtomTypes[AtomName])
             MolType = sim.chem.MolType(MolName, AtomsInMol)
             MolTypes.append(MolType)
+    print('MolTypes {}'.format(MolTypes)) 
     World = sim.chem.World(MolTypes, Dim = 3, Units = Units)
 
     #create bonds between monomer pairs
@@ -41,11 +49,14 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
         for bond_index in range(0, NMon-1):
             MolType.Bond(bond_index, bond_index+1)
 
-    # make system    
+    # make system and add molecules in same sequence as MolNames 
     Sys = sim.system.System(World, Name = SysName)
     Sys.BoxL = BoxL
     for i, MolType in enumerate(MolTypes): 
         NMol = NMolsDict[MolType.Name]
+        if isinstance(NMol,list):
+            NMol = NMol[nextNMolId[MolType.Name]]
+            nextNMolId[MolType.Name] += 1
         print("Adding {} {} molecules to system".format(NMol, MolType.Name))
         for j in range(NMol):
             Sys += MolType.New()
@@ -89,3 +100,4 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
         Int.Method.Barostat = Int.Method.BarostatMonteCarlo  
     
     return Sys
+

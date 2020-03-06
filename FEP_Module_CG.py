@@ -16,6 +16,7 @@ from scipy.optimize import least_squares
 import sys
 """
    Adding new positions of additional molecule at the end of the base trajectory
+   If inserting more than one molecules, use same insertion/deletion frequency
    M.N: Modified for insertion in NPT (record box lengths in x y z and in every frames)
 """
 
@@ -296,7 +297,7 @@ class FEP:
         
         stderr = np.sqrt(((1./beta/g)**2*g_stderr**2+(1./beta/h)**2*h_stderr**2))
         
-        return dF,stderr
+        return dF,stderr,weights_0to1, weights_1to0
         
     def DeltaFreeEnergy(self,ExpdU_0to1,ExpdU_1to0,beta):
         
@@ -322,7 +323,7 @@ class FEP:
         
         BennettsConstant = x
         
-        dF,stderr = self.BennettsDeltaFreeEnergy(BennettsConstant,dU_0to1,dU_1to0,ExpdU_0to1,ExpdU_1to0,beta)
+        dF,stderr,weights_0to1, weights_1to0 = self.BennettsDeltaFreeEnergy(BennettsConstant,dU_0to1,dU_1to0,ExpdU_0to1,ExpdU_1to0,beta)
         residual = (dF - BennettsConstant) # These ought to be equal for minimum variance
         
         return residual
@@ -363,7 +364,7 @@ class FEP:
         
         self.BennettsConstant = float(OptimalBennettsConstant)
         
-        dF,dF_stderr = self.BennettsDeltaFreeEnergy(OptimalBennettsConstant,dU_0to1,dU_1to0,ExpdU_0to1,ExpdU_1to0,beta)
+        dF,dF_stderr, weights_0to1, weights_1to0 = self.BennettsDeltaFreeEnergy(OptimalBennettsConstant,dU_0to1,dU_1to0,ExpdU_0to1,ExpdU_1to0,beta)
         
         # set the change in free energy and the standard error
         self.dF = dF
@@ -386,11 +387,12 @@ class FEP:
         
         self.BennettsConstant = float(OptimalBennettsConstant)
         
-        dF,dF_stderr = self.BennettsDeltaFreeEnergy(OptimalBennettsConstant,dU_0to1,dU_1to0,ExpdU_0to1,ExpdU_1to0,beta)
+        dF,dF_stderr,weights_0to1, weights_1to0 = self.BennettsDeltaFreeEnergy(OptimalBennettsConstant,dU_0to1,dU_1to0,ExpdU_0to1,ExpdU_1to0,beta)
         
         # set the change in free energy and the standard error
         self.dF = dF
         self.dF_stderr = dF_stderr
+        return dF,dF_stderr,weights_0to1, weights_1to0
     
     def ReduceCoordinates(self,xyz,boxvectors):
         ''' Puts all the coordinates in reduced units, i.e. x_r = x/L_x, etc. '''
@@ -441,7 +443,7 @@ class FEP:
                 
                 temp_resid_lists.append(temp_resid_list)
             model_res = temp_resid_lists #list of lists of indices of residues of type res_names
-#            NumberMolecules = len(model_res[0])
+            NumberMolecules = len(model_res[0])
             
 #        self.SetResidueIndiceList_Insertions([x in y for y in model_res]) # for record keeping
         
@@ -462,8 +464,8 @@ class FEP:
         if DrawPerFrame == 0:
             DrawPerFrame = 1
         elif DrawPerFrame > NumberMolecules:
-            DrawPerFrame == NumberMolecules
-            print('WARNING: DrawPerFrame > NumberMolecules ; setting to NumberMolecules.')
+            DrawPerFrame = NumberMolecules
+            print('WARNING: DrawPerFrame > NumberMolecules ; setting to {}.'.format(NumberMolecules))
         
         # Generate random integers for selecting molecules 
         MoleculeIndices2DrawList = []
@@ -548,7 +550,6 @@ class FEP:
         NumberFrames = traj.n_frames
         atom_indices = range(traj.n_atoms) 
         BoxL = traj[0].unitcell_vectors[0][0][0]
-        box =  traj[0].unitcell_vectors[0]
         PotEne_State0 = [] # used if rerunning the ref. state as well.
         PotEne_Data = [] 
         waterId = None        
@@ -604,7 +605,8 @@ class FEP:
             time_start = time.time() # time how long it takes
             # update the initial positions, positions for additional NaCl pair is still 0
             xyz[0][0 : -1*int(tot_atoms_added)] = traj[i].xyz[0]
-            
+            box =  traj[i].unitcell_vectors[0]
+    
             if ReRunRefState:
                 simulation0.context.setPeriodicBoxVectors(box[0],box[1],box[2])
                 simulation0.context.setPositions(traj[i].xyz[0])
@@ -667,7 +669,6 @@ class FEP:
         
         NumberFrames = traj.n_frames
         BoxL = traj[0].unitcell_vectors[0][0][0]
-        box =  traj[0].unitcell_vectors[0]        
         NumberMolecules = traj[0].n_residues
         PotEne_Data = []
         
@@ -694,7 +695,7 @@ class FEP:
                         temp_resid_list.append(resid)
                 temp_resid_lists.append(temp_resid_list)
             model_res = temp_resid_lists # indices of residues of types res_names
-#                    NumberMolecules = len(model_res)
+            NumberMolecules = len(model_res[0])
         
         self.SetResidueIndiceList_Deletions(model_res) # for record keeping
         
@@ -715,8 +716,8 @@ class FEP:
         if NumberDeletionAttemptsPerFrame == 0:
             NumberDeletionAttemptsPerFrame = 1
         elif NumberDeletionAttemptsPerFrame > NumberMolecules:
-            NumberDeletionAttemptsPerFrame == NumberMolecules
-            print('WARNING: NumberDeletionAttemptsPerFrame > NumberMolecules ; setting to NumberMolecules.')
+            NumberDeletionAttemptsPerFrame = NumberMolecules
+            print('WARNING: NumberDeletionAttemptsPerFrame > NumberMolecules ; setting to {}.'.format(NumberMolecules))
         
         MoleculeIndices2DeleteList = []
         RandomSelect = False
@@ -740,7 +741,7 @@ class FEP:
             PBar.Update(i)
             
             time_start = time.time() # time how long it takes
-            
+            box =  traj[i].unitcell_vectors[0]    
             temp_frame = traj[i].xyz[0]
             if ReRunRefState:
                 simulation0.context.setPeriodicBoxVectors(box[0],box[1],box[2])
