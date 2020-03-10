@@ -140,7 +140,7 @@ fixPairs = [('HOH','HOH'),('A','A'),('A','HOH'),('Na+','Na+'),('Cl-','Cl-'),('Na
 print('fixing Gaussian parameters of pairs {}'.format(fixPairs))
 
 #Excluded volume size for each atom type: a_ev = 1/(number density of this CG atom type)
-aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4.5/3.1, 'B-': 4.5/3.1, 'AE':4.5/3.1, 'AE-': 4.5/3.1, 'BE': 4.5/3.1, 'BE+':4.5/3.1}
+aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4.5/3.1, 'B+': 4.5/3.1, 'AE':4.5/3.1, 'AE-': 4.5/3.1, 'BE': 4.5/3.1, 'BE+':4.5/3.1}
 aCoul_self = aevs_self.copy()
 
 #BondParams: (atom1,atom2):[Dist0,FConst,Label], FConts = kcal/mol/Angstrom**2

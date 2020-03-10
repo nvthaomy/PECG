@@ -19,7 +19,7 @@ scale=__scale__
 export PATH=/home/mnguyen/lammps-7Aug19/bin/:$PATH
 export PATH="/home/mnguyen/miniconda3/envs/py2/bin/:$PATH"
 export PYTHONPATH=/home/mnguyen/bin/sim_git:$PYTHONPATH
-python MDmain.py
+python __pyName__
 
 #if test -f "AllStats.dat"; then
 #    sed -i "s/__traj__/${traj}/g" convertTraj2RealUnit.py 

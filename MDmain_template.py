@@ -6,6 +6,8 @@ Created on Thu Dec 12 18:11:03 2019
 @author: my
 """
 import sim, pickleTraj
+import sys
+sys.path.append('/home/mnguyen/bin/PECG/')
 import system, optimizer, fepcg
 import numpy as np
 import MDAnalysis as mda
@@ -54,7 +56,7 @@ MolNamesList = [__MolNamesList__]
 MolTypesDicts = [{'PAA':__PAAstructure__,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
 # number of molecules for each molecule type, nSys x molecule types
 NMolsDicts = [{'PAA':__nPAA__,'Na+':__nNa__,'Cl-':__nCl__,'HOH':__nHOH__}]
-charges = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0,'A-': -1., 'B': 0., 'B-': 1.}
+charges         = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0, 'A-': -1., 'B': 0., 'B+': 1., 'AE':0., 'BE':0., 'AE-': -1., 'BE+':1.}
 
 Name = __Name__
 
@@ -80,7 +82,7 @@ PresSet = np.array(PresSet)
 IntParams = {'TimeStep': dt, 'LangevinGamma': 1/(100*dt)}
 
 """MD OPT"""
-RunMD = True
+RunMD = False
 UseLammps = __UseLammps__
 UseOMM = __UseOMM__
 UseSim = False
@@ -92,7 +94,7 @@ StepsStride = __Stride__
 MDRestartFile = None #None: dont read restart file
 
 """FEP Params"""
-CalChemPot = False
+CalChemPot = True
 FEPDir = __FEPDir__
 FEPMolNames = __FEPMolNames__ #['HOH']
 ThermoSlice = __ThermoSlice__ 
@@ -109,15 +111,18 @@ SysLoadFF = True #always read force field when run MD
 ForceFieldFile = __ff__
 
 #Excluded volume size for each atom type: a_ev = 1/(number density of this CG atom type)
-aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4.5/3.1, 'B-': 4.5/3.1}
+aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4.5/3.1, 'B+': 4.5/3.1, 'AE':4.5/3.1, 'AE-': 4.5/3.1, 'BE': 4.5/3.1, 'BE+':4.5/3.1}
 aCoul_self = aevs_self.copy()
 
 #BondParams: (atom1,atom2):[Dist0,FConst,Label], FConts = kcal/mol/Angstrom**2
-BondParams = {('A','A'):[1., 50., 'BondA_A']}
+BondParams = {}
 #               ('B','B+'):[4., 50*kTkcalmol, 'BondB_B+'], ('B','B'):[4., 50*kTkcalmol, 'BondB_B']}
 #whether to fix a parameter
 IsFixedBond = {('A','A-'):[False,False,True], ('A','A'):[False,False,True], ('A-','A-'):[False,False,True],
-               ('B','B+'):[False,False,True], ('B','B'):[False,False,True], ('B+','B+'):[False,False,True]}
+               ('B','B+'):[False,False,True], ('B','B'):[False,False,True], ('B+','B+'):[False,False,True],
+               ('A','AE'):[False,False,True], ('A','AE-'):[False,False,True], ('A-','AE'):[False,False,True], ('A-','AE-'):[False,False,True],
+               ('B','BE'):[False,False,True], ('B','BE+'):[False,False,True], ('B+','BE'):[False,False,True], ('B+','BE+'):[False,False,True]}
+
 #Pair interaction
 #use spline or LJGauss for pair?
 UseLJGauss = True
@@ -293,7 +298,7 @@ for i, Sys in enumerate(Systems):
     #make initial pdb
     top = sim.traj.pdb.PdbWrite('{}_init.pdb'.format(Sys.Name))
     top.AddAction(Sys.Int, StepFreq = 9)
-    Sys.Int.Run(10)
+#    Sys.Int.Run(10)
 
     NAtomsPerChain = len(MolTypesDicts[i]['PAA'])
     DOP = len(MolTypesDicts[i]['PAA'])

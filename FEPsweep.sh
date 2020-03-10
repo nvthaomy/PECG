@@ -22,12 +22,14 @@ Name="'nacl'"
 ff="'nacl_ff.dat'"
 
 dirNameA=('0.5M' '1M' '3M' '5M')
-nNaA=(61 122 368 613)
+nPAAs=(0 0 0 0)
+nNaA=(61) # 122 368 613)
 nClA=(61 122 368 613)
 nHOHA=(6708 6616 6247 5880)
 volA=(6840. 6840. 6840. 6840. )
 nInsertA=(20 50)
 nDeleteA=(20 50)
+MolNamesList=["'Na+','Cl-','HOH'"]
 
 #MD
 dt=0.1
@@ -41,12 +43,12 @@ UseLammps=False
 OMP_NumThread=4
 OPENMM_CPU_THREADS=$OMP_NumThread
 #FEP
-FEPMolNames=["'Na+','Cl-'"]
+FEPMolNames=["'HOH'"]
 ThermoSlice=1
 TrajSlice=1
 #nInsert=20
 #nDelete=20
-MolName=NaCl
+MolName=HOH
 #for converting traj to real unit
 #top="'nacl0_initial.pdb'"
 #traj="'nacl0_traj.dcd'"
@@ -59,10 +61,11 @@ echo $length 'concentration values'
 
 # do the loop
 for ((i=0;i<$length;i++)); do
-
+    nPAA=${nPAAs[$i]}
     nNa=${nNaA[$i]}
     nCl=${nClA[$i]}
     nHOH=${nHOHA[$i]}
+    PAAstructure=["'A'"]*12
     vol=${volA[$i]}
     mydir=${dirNameA[$i]}
 
@@ -76,10 +79,14 @@ for ((i=0;i<$length;i++)); do
     echo === ${mydir} ===
     echo $FEPDir
     sed -i "s/__Name__/${Name}/g" $mydir/FEP_${FEPDir}.py
+    sed -i "s/__nPAA__/${nPAA}/g" $mydir/FEP_${FEPDir}.py 
     sed -i "s/__nNa__/${nNa}/g" $mydir/FEP_${FEPDir}.py 
     sed -i "s/__nCl__/${nCl}/g" $mydir/FEP_${FEPDir}.py
     sed -i "s/__nHOH__/${nHOH}/g" $mydir/FEP_${FEPDir}.py
     sed -i "s/__vol__/${vol}/g" $mydir/FEP_${FEPDir}.py
+    sed -i "s/__PAAstructure__/${PAAstructure}/g" $mydir/FEP_${FEPDir}.py
+    sed -i "s/__MolNamesList__/${MolNamesList}/g" $mydir/FEP_${FEPDir}.py
+
     sed -i "s/__dt__/${dt}/g" $mydir/FEP_${FEPDir}.py     
     sed -i "s/__P__/${P}/g" $mydir/FEP_${FEPDir}.py
     sed -i "s/__tau__/${tau}/g" $mydir/FEP_${FEPDir}.py
@@ -99,6 +106,7 @@ for ((i=0;i<$length;i++)); do
 
     sed -i "s/__OMP_NumThread__/${OMP_NumThread}/g" $mydir/pod_${FEPDir}.sh
     sed -i "s/__jobName__/${ext}${mydir}_${FEPDir}/g" $mydir/pod_${FEPDir}.sh
+    sed -i "s/__pyName__/FEP_${FEPDir}.py/g" $mydir/pod_${FEPDir}.sh
     cd $mydir
     qsub pod_${FEPDir}.sh
     cd ..
