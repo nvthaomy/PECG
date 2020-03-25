@@ -82,7 +82,7 @@ PresSet = np.array(PresSet)
 IntParams = {'TimeStep': dt, 'LangevinGamma': 1/(100*dt)}
 
 """MD OPT"""
-RunMD = False
+RunMD = True
 UseLammps = __UseLammps__
 UseOMM = __UseOMM__
 UseSim = False
@@ -94,7 +94,7 @@ StepsStride = __Stride__
 MDRestartFile = None #None: dont read restart file
 
 """FEP Params"""
-CalChemPot = True
+CalChemPot = False
 FEPDir = __FEPDir__
 FEPMolNames = __FEPMolNames__ #['HOH']
 ThermoSlice = __ThermoSlice__ 
@@ -332,11 +332,11 @@ for i, Sys in enumerate(Systems):
             gr.write(top)
          
             """Analyze"""
-            analysis.getStats(TrajFile, top, NP, ThermoLog, DOP = DOP, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
+            analysis.GetStats(TrajFile, top, NP, ThermoLog, DOP = DOP, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
               RgDatName = 'RgTimeSeries', ReeDatName = 'ReeTimeSeries',RgStatOutName = 'RgReeStats', Ext='.dat',  
               fi = 'lammps', obs = ['PotEng', 'Temp', 'Press'], cols = None,
               res0Id = 0, stride = 1, autowarmup = True, warmup = 100)
-
+            analysis.GetCompressibility(TrajFile, top, 298.15, unit = 'nonDim', lengthScale = 0.31, trajFmt = 'lmp')
     elif UseOMM:
         top = Sys.Name+'_'+'initial.pdb'
         TrajFile = Sys.Name+'_traj.dcd'
@@ -347,11 +347,11 @@ for i, Sys in enumerate(Systems):
                                                        WriteFreq = StepsStride)
 
             """Analyze"""
-            analysis.getStats(TrajFile, top, NP, ThermoLog, DOP = DOP, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
+            analysis.GetStats(TrajFile, top, NP, ThermoLog, DOP = DOP, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
               RgDatName = 'RgTimeSeries', ReeDatName = 'ReeTimeSeries',RgStatOutName = 'RgReeStats', Ext='.dat',
               fi = 'openmm', obs = [ 'Potential_Energy_(kJ/mole)',   'Kinetic_Energy_(kJ/mole)',   'Temperature_(K)',   'Box_Volume_(nm^3)',   'Density_(g/mL)'], cols = None,
               res0Id = 0, stride = 1, autowarmup = True, warmup = 100)
-
+            analysis.GetCompressibility(TrajFile, top, 298.15, unit = 'nonDim', lengthScale = 0.31, trajFmt = 'omm')
     '''Do FEP'''
     if CalChemPot:
 

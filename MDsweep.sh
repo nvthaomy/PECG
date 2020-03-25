@@ -9,14 +9,6 @@
 
 module load intel/18
 
-cd $SLURM_SUBMIT_DIR
-/bin/hostname
-#export PATH=/home/mnguyen/bin/lammps/lammps-12Dec18/bin/:$PATH
-export PATH=/home/mnguyen/lammps-7Aug19/bin/:$PATH
-export PATH="/home/mnguyen/miniconda3/envs/py2/bin/:$PATH"
-export PYTHONPATH=/home/mnguyen/bin/sim_git:$PYTHONPATH
-#python main.py
-
 ext=PAANPT_
 Name="'PAA'"
 ff="'PAA_ff.dat'"

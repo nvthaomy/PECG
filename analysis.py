@@ -1,3 +1,5 @@
+import sys
+sys.path.append('/home/bin/scripts/')
 import stats
 import numpy as np
 import matplotlib, sys, os
@@ -27,10 +29,10 @@ DOPs = [12]
 NPs = [15]
 #index of first polymer residue
 res0Id = 0
-
-
+N_av = 6.022e23 #1/mol
+kB = 0.008314265 #kJ/mol/K
 #########################End of input######################
-def getThermo(ThermoLog, fi = 'lammps', obs = None, cols = None, autowarmup = True, warmup = 100):
+def GetThermo(ThermoLog, fi = 'lammps', obs = None, cols = None, autowarmup = True, warmup = 100):
     """ fi: log file format, 'lammps' or 'openmm' """
     if not obs == None and not cols == None:
         Exception('Read data either by observable name or column index but not both!')
@@ -92,7 +94,7 @@ def getThermo(ThermoLog, fi = 'lammps', obs = None, cols = None, autowarmup = Tr
 
     return obsID, Stats
         
-def getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = None, 
+def GetRgRee(trajFile, top, DOP, NP, NAtomsPerChain = None, 
              RgDatName = 'RgTimeSeries', ReeDatName = 'ReeTimeSeries',RgStatOutName = 'RgReeStats', Ext='.dat',  
              res0Id = 0, stride = 1, autowarmup = True, warmup = 100, plot = False):    
     
@@ -269,21 +271,21 @@ def getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = None,
     f.write(txtRg)
     return  RgAvg,RgStd,RgErr,RgCorrTime,RgCorrTimeErr,RgNUncorrSamples, ReeAvg,ReeStd,ReeErr,ReeCorrTime,ReeCorrTimeErr,ReeNUncorrSamples 
 
-def getStats(trajFile, top, NP, ThermoLog, DOP = 10, NAtomsPerChain = None,  
+def GetStats(trajFile, top, NP, ThermoLog, DOP = 10, NAtomsPerChain = None,  
              StatsFName = 'AllStats.dat', RgDatName = 'RgTimeSeries', ReeDatName = 'ReeTimeSeries',RgStatOutName = 'RgReeStats', Ext='.dat',  
              fi = 'lammps', obs = None, cols = None,
              res0Id = 0, stride = 1, autowarmup = True, warmup = 100, plot = False):
     
     txt = '#  Avg.\tS.D.\tStdErr.\tCorr.\tStdErr.\tUncorr.Samples\n'
     if NP > 0:
-        RgAvg,RgStd,RgErr,RgCorrTime,RgCorrTimeErr,RgNUncorrSamples, ReeAvg,ReeStd,ReeErr,ReeCorrTime,ReeCorrTimeErr,ReeNUncorrSamples = getRgRee(trajFile, top, DOP, NP, NAtomsPerChain = NAtomsPerChain,
+        RgAvg,RgStd,RgErr,RgCorrTime,RgCorrTimeErr,RgNUncorrSamples, ReeAvg,ReeStd,ReeErr,ReeCorrTime,ReeCorrTimeErr,ReeNUncorrSamples = GetRgRee(trajFile, top, DOP, NP, NAtomsPerChain = NAtomsPerChain,
              RgDatName = RgDatName, ReeDatName = ReeDatName, RgStatOutName = RgStatOutName, Ext=Ext,
              res0Id = res0Id, stride = stride, autowarmup = autowarmup, warmup = warmup, plot = plot)
         txt += ' Rg\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%i' %(RgAvg,RgStd,RgErr,RgCorrTime,RgCorrTimeErr,RgNUncorrSamples)
         txt += '\n Ree\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%8.5f\t%i' %(ReeAvg,ReeStd,ReeErr,ReeCorrTime,ReeCorrTimeErr,ReeNUncorrSamples)
 
     print('reading thermo file {}'.format(ThermoLog))
-    obsID, Stats = getThermo(ThermoLog, fi = fi, obs = obs, cols = cols, autowarmup = autowarmup, warmup = warmup)
+    obsID, Stats = GetThermo(ThermoLog, fi = fi, obs = obs, cols = cols, autowarmup = autowarmup, warmup = warmup)
     
     for i, obs in enumerate(obsID):
         Avg,Std,CorrTime,Err,NUncorrSamples = Stats[i]
@@ -294,6 +296,40 @@ def getStats(trajFile, top, NP, ThermoLog, DOP = 10, NAtomsPerChain = None,
     f = open(StatsFName, 'w')
     f.write(txt)
 
+def GetCompressibility(trajFile, top, temp, stride = 1, unit = 'bar', lengthScale = 0.31, fName = 'Compressibility', Ext='.dat', trajFmt = 'omm'):
+    """unit = ['bar','Pa','nonDim']
+       lengthScale in nm
+       trajFmt: lmp or omm, multiply volume by 10**3 if trajFmt is lmp and unit is nonDim"""
+
+    print('Need temperature in Kelvin')
+    kT = kB * temp #kJ/mol 
+    traj = md.load(trajFile, top=top, stride = stride)
+    vols = traj.unitcell_volumes
+    if trajFmt == 'lmp' and unit =='nonDim':
+        vols *= 10.**3
+    meanVol = np.mean(vols)
+    vol2s = vols**2
+    meanVol2 = np.mean(vol2s)
+    if unit == 'Pa':
+        compressibility = (meanVol2 - meanVol**2)/(meanVol*kT) * N_av * 1e-30
+        s = '1/'+unit
+        print('Compressibility is {:.4e} {:s}'.format(compressibility, s))
+    elif unit == 'bar':
+        compressibility = (meanVol2 - meanVol**2)/(meanVol*kT) * N_av * 1e-25
+        s = '1/'+unit
+        print('Compressibility is {:.4e} {:s}'.format(compressibility, s)) 
+    elif unit == 'nonDim':
+        kT = 1.
+        print('Assume kT = 1.')
+        compressibility = (meanVol2 - meanVol**2)/(meanVol*kT) * N_av
+        compressibilityBar = compressibility * lengthScale**3 / (kB * temp) * 1e-25
+        s = 'sigma^3/kT'
+        print('Compressibility is {:.4e} {:s}'.format(compressibility, s))
+        print('Convert to real unit at {:.2f} K for length scale of {:.2f} nm: {:.4e} 1/bar'.format(temp, lengthScale, compressibilityBar))
+    f = open(fName+Ext,'w')
+    f.write('{:.5e} {:s}'.format(compressibility, s))
+    return compressibility
+
 if __name__ ==  '__main__':
 
     TrajFile = 'PAA0_traj.dcd'
@@ -301,7 +337,7 @@ if __name__ ==  '__main__':
     NAtomsPerChain = 12
     NP = 15
     top = 'PAA0.pdb'     
-    getStats(TrajFile, top, NP, ThermoLog, DOP = 12, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
+    GetStats(TrajFile, top, NP, ThermoLog, DOP = 12, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
             RgDatName = 'RgTimeSeries', ReeDatName = 'ReeTimeSeries',RgStatOutName = 'RgReeStats', Ext='.dat',
              fi = 'lammps', obs = ['PotEng', 'Temp', 'Press'], cols = None,
              res0Id = 0, stride = 1, autowarmup = True, warmup = 100, plot = True)
