@@ -53,9 +53,9 @@ BoxLs = [[L,L,L]]
 #must in the right sequence as molecules in the trajectory
 MolNamesList = [__MolNamesList__]
 # nSys x molecule types   
-MolTypesDicts = [{'PAA':__PAAstructure__,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
+MolTypesDicts = [{'PAA':__PAAstructure__,'PAH':__PAHstructure__,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
 # number of molecules for each molecule type, nSys x molecule types
-NMolsDicts = [{'PAA':__nPAA__,'Na+':__nNa__,'Cl-':__nCl__,'HOH':__nHOH__}]
+NMolsDicts = [{'PAA':__nPAA__,'PAH':__nPAH__,'Na+':__nNa__,'Cl-':__nCl__,'HOH':__nHOH__}]
 charges         = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0, 'A-': -1., 'B': 0., 'B+': 1., 'AE':0., 'BE':0., 'AE-': -1., 'BE+':1.}
 
 Name = __Name__
@@ -115,7 +115,7 @@ aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4
 aCoul_self = aevs_self.copy()
 
 #BondParams: (atom1,atom2):[Dist0,FConst,Label], FConts = kcal/mol/Angstrom**2
-BondParams = {}
+BondParams = { ('A-','A-'):[1.1, 50*kTkcalmol, 'BondA-_A-'], ('B+','B+'):[1., 50*kTkcalmol, 'BondB+_B+'] }
 #               ('B','B+'):[4., 50*kTkcalmol, 'BondB_B+'], ('B','B'):[4., 50*kTkcalmol, 'BondB_B']}
 #whether to fix a parameter
 IsFixedBond = {('A','A-'):[False,False,True], ('A','A'):[False,False,True], ('A-','A-'):[False,False,True],
@@ -334,8 +334,8 @@ for i, Sys in enumerate(Systems):
             """Analyze"""
             analysis.GetStats(TrajFile, top, NP, ThermoLog, DOP = DOP, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
               RgDatName = 'RgTimeSeries', ReeDatName = 'ReeTimeSeries',RgStatOutName = 'RgReeStats', Ext='.dat',  
-              fi = 'lammps', obs = ['PotEng', 'Temp', 'Press'], cols = None,
-              res0Id = 0, stride = 1, autowarmup = True, warmup = 100)
+              fi = 'lammps', obs = ['PotEng', 'Temp', 'Press', 'Volume'], cols = None,
+              res0Id = 0, stride = 1, autowarmup = True, warmup = 100, unit = 'nonDim')
             analysis.GetCompressibility(TrajFile, top, 298.15, unit = 'nonDim', lengthScale = 0.31, trajFmt = 'lmp')
     elif UseOMM:
         top = Sys.Name+'_'+'initial.pdb'
@@ -350,7 +350,7 @@ for i, Sys in enumerate(Systems):
             analysis.GetStats(TrajFile, top, NP, ThermoLog, DOP = DOP, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
               RgDatName = 'RgTimeSeries', ReeDatName = 'ReeTimeSeries',RgStatOutName = 'RgReeStats', Ext='.dat',
               fi = 'openmm', obs = [ 'Potential_Energy_(kJ/mole)',   'Kinetic_Energy_(kJ/mole)',   'Temperature_(K)',   'Box_Volume_(nm^3)',   'Density_(g/mL)'], cols = None,
-              res0Id = 0, stride = 1, autowarmup = True, warmup = 100)
+              res0Id = 0, stride = 1, autowarmup = True, warmup = 100, unit = 'nonDim')
             analysis.GetCompressibility(TrajFile, top, 298.15, unit = 'nonDim', lengthScale = 0.31, trajFmt = 'omm')
     '''Do FEP'''
     if CalChemPot:

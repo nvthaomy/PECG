@@ -9,29 +9,32 @@
 
 module load intel/18
 
-ext=PAANPT_
-Name="'PAA'"
-ff="'PAA_ff.dat'"
+ext=PE_xp0.05_7AA12f1_7AH12f1_197nacl_NPT_1_1_1_
+Name="'PE'"
+ff=PE_ff.dat
 
-dirNameA=('N12' 'N24' 'N48' 'N60' 'N90')
-nPAAs=(15 8 12 10 7)
-nNaA=(0 0 0 0 0)
-nClA=(0 0 0 0 0)
-nHOHA=(4728 4728 15372 15372 15372)
-volA=(5270. 5300. 17078. 17119. 17219.)
-MolNamesList=["'PAA','HOH'"]
+dirNameA=('xp0.05_7AA12f1_7AH12f1_197nacl_NPT')
+nPAAs=(7)
+nPAHs=(7)
+nNaA=(197)
+nClA=(197)
+nHOHA=(10396)
+volA=(11232.694)
+MolNamesList=["'PAA','PAH', 'Na+', 'Cl-','HOH'"]
 
-PAAstructureA=(["'A'"]*12 ["'A'"]*24 ["'A'"]*48 ["'A'"]*60 ["'A'"]*90)
+PAAstructureA=(["'A-'"]*12)
+PAHstructureA=(["'B+'"]*12)
+
 #MD
 dt=0.05 #0.1
-P=8.52
-tau=6000.
+P=8.520
+tau=8000.
 equilTau=100.
 Stride=40
 cut=8.
 UseOMM=True
 UseLammps=False
-OMP_NumThread=4
+OMP_NumThread=8
 OPENMM_CPU_THREADS=$OMP_NumThread
 #FEP
 
@@ -56,25 +59,29 @@ length=${#nPAAs[@]}
 # do the loop
 for ((i=0;i<$length;i++)); do
     nPAA=${nPAAs[$i]}
+    nPAH=${nPAHs[$i]}
     nNa=${nNaA[$i]}
     nCl=${nClA[$i]}
     nHOH=${nHOHA[$i]}
     vol=${volA[$i]}
     PAAstructure=${PAAstructureA[$i]}
+    PAHstructure=${PAHstructureA[$i]}
 
     mydir=${dirNameA[$i]}
 #    mydir=${nNa}Na_${nCl}Cl_${nHOH}HOH
     mkdir $mydir
-    cp * $mydir/.
-    mv $mydir/MDmain_template.py $mydir/MDmain.py
-    mv $mydir/pod_template.sh $mydir/pod.sh
+    cp $ff $mydir/.
+    cp MDmain_template.py $mydir/MDmain.py
+    cp pod_template.sh $mydir/pod.sh
     echo === ${mydir} ===
     sed -i "s/__Name__/${Name}/g" $mydir/MDmain.py
     sed -i "s/__nNa__/${nNa}/g" $mydir/MDmain.py 
     sed -i "s/__nCl__/${nCl}/g" $mydir/MDmain.py
     sed -i "s/__nHOH__/${nHOH}/g" $mydir/MDmain.py
     sed -i "s/__nPAA__/${nPAA}/g" $mydir/MDmain.py
+    sed -i "s/__nPAH__/${nPAH}/g" $mydir/MDmain.py
     sed -i "s/__PAAstructure__/${PAAstructure}/g" $mydir/MDmain.py
+    sed -i "s/__PAHstructure__/${PAHstructure}/g" $mydir/MDmain.py
     sed -i "s/__MolNamesList__/${MolNamesList}/g" $mydir/MDmain.py
 
     sed -i "s/__vol__/${vol}/g" $mydir/MDmain.py
@@ -82,7 +89,7 @@ for ((i=0;i<$length;i++)); do
     sed -i "s/__P__/${P}/g" $mydir/MDmain.py
     sed -i "s/__tau__/${tau}/g" $mydir/MDmain.py
     sed -i "s/__Stride__/${Stride}/g" $mydir/MDmain.py
-    sed -i "s/__ff__/${ff}/g" $mydir/MDmain.py
+    sed -i "s/__ff__/'${ff}'/g" $mydir/MDmain.py
     sed -i "s/__cut__/${cut}/g" $mydir/MDmain.py
     sed -i "s/__UseOMM__/${UseOMM}/g" $mydir/MDmain.py
     sed -i "s/__UseLammps__/${UseLammps}/g" $mydir/MDmain.py

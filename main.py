@@ -186,7 +186,7 @@ FixedSpline = False
 
 #Smeared Coul
 SmearedCoulParams = {}
-EwaldCoef = 2.31
+EwaldCoef = 2.4
 SCoulShift = True
 FixedCoef = False
 FixedBornA = False
