@@ -97,7 +97,7 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
         print('Adding Ewald')
         P = sim.potential.Ewald(Sys, ExcludeBondOrd = EwaldParams['ExcludeBondOrd'] , 
                          Cut = EwaldParams['Cut'], Shift = EwaldParams['Shift'], Label = EwaldParams['Label'], Coef = EwaldParams['Coef'], EwaldNAtom = EwaldParams['EwaldNAtom'],
-                         FixedCoef = EwaldParams['FixedCoef'])
+                         FixedCoef = EwaldParams['FixedCoef'], KMax = EwaldParams['KMax'])
         print('Number of atoms to loop through in Ewald {}'.format(P.EwaldNAtom))
         ForceField.append(P)
     

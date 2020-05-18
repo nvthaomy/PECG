@@ -187,13 +187,14 @@ FixedSpline = False
 #Smeared Coul
 SmearedCoulParams = {}
 EwaldCoef = 2.4
+KMax = 10
 SCoulShift = True
 FixedCoef = False
 FixedBornA = False
 IsFixedCharge = True
 
 #Ewald params
-EwaldParams = {'ExcludeBondOrd': 0, 'Cut': Cut, 'Shift': True, 'Label': 'EW', 'Coef': EwaldCoef, 'EwaldNAtom': None, 'FixedCoef': FixedCoef}
+EwaldParams = {'ExcludeBondOrd': 0, 'Cut': Cut, 'Shift': True, 'Label': 'EW', 'Coef': EwaldCoef, 'EwaldNAtom': None, 'FixedCoef': FixedCoef, 'KMax': KMax}
 
 #External Potential, ExtPot can be list of many external potentials
 UConst = 0.0 
