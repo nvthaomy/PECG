@@ -57,6 +57,7 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
             ForceField.append(P)
     elif UseLJGauss:
         #Gaussian Pair
+        print('No constraints on Gaussian prefactor')
         for (atom1name,atom2name), params in sorted(LJGaussParams.items()):
             print('Adding {}\nCutoff {}'.format(params[6],params[3]))
             atom1 = AtomTypes[atom1name]
@@ -78,14 +79,7 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
                              Label = Label)
                 P.Param.B.Fixed = fixed[0]
                 #set bound of B, repulsive if i is even, attractive if i is odd
-                if i%2 == 0:
-                    P.Param.B.Min = 0.
-                    if  params[0] < 0.:
-                        P.Param.B = -params[0]
-                else:
-                    P.Param.B.Max = 0.
-                    if params[0] > 0.:
-                        P.Param.B = -params[0]
+                P.Param.B.Min = -100.
                 P.Param.Kappa.Fixed = fixed[1]
                 P.Param.Dist0.Fixed = fixed[2]
                 P.Param.Sigma.Fixed = fixed[4]

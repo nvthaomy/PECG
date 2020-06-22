@@ -11,7 +11,9 @@ sys.path.append('/home/mnguyen/bin/PECG/')
 import sim, pickleTraj
 #import mappoly_implicit as mappoly
 import mappoly
-import system, optimizer
+import system 
+#import system_noBconstraints as system
+import optimizer
 import numpy as np
 """
 run with mappoly.py (or mappoly_implicit.py), system.py, optimizer.py, forcefield.py
@@ -187,14 +189,14 @@ FixedSpline = False
 #Smeared Coul
 SmearedCoulParams = {}
 EwaldCoef = 2.4
-KMax = 10
+#KMax = 10
 SCoulShift = True
 FixedCoef = False
 FixedBornA = False
 IsFixedCharge = True
 
 #Ewald params
-EwaldParams = {'ExcludeBondOrd': 0, 'Cut': Cut, 'Shift': True, 'Label': 'EW', 'Coef': EwaldCoef, 'EwaldNAtom': None, 'FixedCoef': FixedCoef, 'KMax': KMax}
+EwaldParams = {'ExcludeBondOrd': 0, 'Cut': Cut, 'Shift': True, 'Label': 'EW', 'Coef': EwaldCoef, 'EwaldNAtom': None, 'FixedCoef': FixedCoef} # 'KMax': KMax}
 
 #External Potential, ExtPot can be list of many external potentials
 UConst = 0.0 

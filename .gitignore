@@ -1,3 +1,5 @@
+*pyc
+__pycache__
 testScaleBox/
 test_PAAf0.5_implicitSol/
 test_PAAf0.5_implicitSol_NPT/
