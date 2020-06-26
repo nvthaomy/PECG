@@ -9,7 +9,7 @@ import sim
 import forcefield
 def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams, ForceFieldFile,
                               NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, 
-                              Units = sim.units.AtomicUnits):
+                              IsFixedExtPot = {"UConst": True, "NPeriods":True} ,Units = sim.units.AtomicUnits):
 
     print("\nCreate system {}".format(SysName))
     AtomTypes = {}
@@ -65,7 +65,7 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
     # add forcefield 
     
     ForceField = forcefield.CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams,
-                              BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot)
+                              BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, IsFixedExtPot)
                                 
     Sys.ForceField.extend(ForceField)
 

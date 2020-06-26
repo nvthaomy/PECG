@@ -9,14 +9,15 @@ import sim
 print(sim)
 
 def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams,
-                              BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot):
+                              BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot,IsFixedExtPot):
     """BondParams: (atom1,atom2):[Dist0,FConst,Label]
        IsFixedBond: (atom1,atom2):[Dist0,FConst,Label], type = boolean
        LJGaussParams: (atom1,atom2):[B, kappa, Dist0, Cut, Sigma, Epsilon, Label ]
        IsFixedLJGauss: (atom1,atom2):[B, kappa, Dist0, Cut, Sigma, Epsilon, Label ] type = boolean
        SmearedCoulParams: (atom1,atom2): [BornA, Cut, Shift, FixedCoef, FixedBornA, Label]
        EwaldParams = {'ExcludeBondOrd': 3, 'Cut': Cut, 'Shift': True, 'Label': 'EW'}
-       ExtPot = {"UConst": 0, "NPeriods": 1, "PlaneAxis": 2, "PlaneLoc": 0., "AtomTypes":[]}"""
+       ExtPot = {"UConst": 0, "NPeriods": 1, "PlaneAxis": 2, "PlaneLoc": 0., "AtomTypes":[]}
+       IsFixedExtPot = {"UConst": boolean, "NPeriods": boolean}"""
    
     print("\nCreating forcefield for {}".format(Sys.Name))
     ForceField = []
@@ -120,6 +121,8 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
                 print("Using external sinusoid with UConst {} on {}".format(P["UConst"],P['AtomTypes'])) 
                 P0 = sim.potential.ExternalSinusoid(Sys, Filter=FilterExt, UConst=P["UConst"], NPeriods=P["NPeriods"], 
                                            PlaneAxis=P["PlaneAxis"], PlaneLoc=P["PlaneLoc"], Label=P["Label"])
+                P0.UConst.Fixed = IsFixedExtPot['UConst']  
+                P0.NPeriods.Fixed = IsFixedExtPot['NPeriods']
                 ForceField.append(P0)
         else:
             print("Using external sinusoid with UConst {} on {}".format(ExtPot["UConst"],ExtPot['AtomTypes']))    
@@ -127,8 +130,10 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
             FilterExt = sim.atomselect.PolyFilter(Filters =[AtomTypesInExt]) 
             P0 = sim.potential.ExternalSinusoid(Sys, Filter=FilterExt, UConst=ExtPot["UConst"], NPeriods=ExtPot["NPeriods"],     
                           PlaneAxis=ExtPot["PlaneAxis"], PlaneLoc=ExtPot["PlaneLoc"], Label=ExtPot["Label"])
-            ForceField.append(P0)
 
+            P0.UConst.Fixed = IsFixedExtPot['UConst']
+            P0.NPeriods.Fixed = IsFixedExtPot['NPeriods']
+            ForceField.append(P0)
     return ForceField
     
     
