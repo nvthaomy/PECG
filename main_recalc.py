@@ -5,14 +5,13 @@ Created on Thu Dec 12 18:11:03 2019
 
 @author: my
 """
-import optimizer as optimizer
 import sys
 sys.path.append('/home/mnguyen/bin/PECG/')
 
 import sim, pickleTraj
 #import mappoly_implicit as mappoly
 import mappoly
-import system
+import system, optimizer
 import numpy as np
 import argparse as ap
 
