@@ -125,10 +125,14 @@ WeightSysByNMol = False
 WeightSysByNAtom = True
 
 UseWPenalty = False
-StageCoefs = []
+StageCoefs = [1e3,1e5, 1e8, 1e10]
 
 MaxIter=None
 SteepestIter=0
+
+RgConstrain=False
+MolIdRgList=[[range(0,10),range(10,20)]]
+RgTarList = [[1.3568/0.31,1.1892/0.31]]
 
 """FORCEFIELD"""
 """fix self interaction of water to value that reproduce the compressibility of pure water, u0 = 18.69kT, B = u0/(4 pi aev**2)**(3/2)"""
@@ -318,6 +322,8 @@ for i, MolTypesDict in enumerate(MolTypesDicts):
     SysName = Name+str(i)
     CGtraj = CGtrajs[i]
     BoxL = BoxLs[i] 
+    MolIdRgs = MolIdRgList[i]
+    RgTars = RgTarList[i]
     if UseNPT:
         Pres = PresSet[i]
     else:
@@ -329,16 +335,16 @@ for i, MolTypesDict in enumerate(MolTypesDicts):
     #create system and add forcefield, then create optimizer for each system
     if SrelOnNeutralSys:
         print('Optimizing params in neutral system but run MD on system with full electrostatics')
-        ElecSys = system.CreateSystem(SysName+'Elec', BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
+        ElecSys,_ = system.CreateSystem(SysName+'Elec', BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
                               NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units)
-        Sys = system.CreateSystem(SysName+'Neutral', BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, chargesNeutral, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,          
-                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units) 
+        Sys,measureRgs  = system.CreateSystem(SysName+'Neutral', BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, chargesNeutral, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
+                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units,RgConstrain=RgConstrain,MolIdRgs=MolIdRgs)
     else:
-        Sys = system.CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
-                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units)
+        Sys,measureRgs = system.CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
+                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units, RgConstrain=RgConstrain,MolIdRgs=MolIdRgs)
         ElecSys = None
 
-    Opt = optimizer.CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty,ElecSys = ElecSys)
+    Opt = optimizer.CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty,ElecSys = ElecSys, RgConstrain = RgConstrain,RgTars=RgTars,measureRgs=measureRgs)
 
     Opts.append(Opt)
     Systems.append(Sys)
@@ -362,5 +368,5 @@ elif WeightSysByNAtom:
         Weights.append(np.max(NAtoms)/float(NAtom))
     print ('Weights for Expanded Ensemble are:')
     print (Weights)
-optimizer.RunOpt(Opts, Weights, Name, UseWPenalty, MaxIter, SteepestIter, StageCoefs)
+optimizer.RunOpt(Opts, Weights, Name, UseWPenalty, MaxIter, SteepestIter, RgConstrain, StageCoefs=StageCoefs)
 
