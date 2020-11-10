@@ -9,7 +9,7 @@ import sim
 import os
 import numpy as np
 
-def CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty, ElecSys=None):
+def CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty, ElecSys=None, RgConstrain=False,RgTars=[1.],measureRgs=None):
     # Perform atom mapping for specific system
     Map = sim.atommap.PosMap()
     print(Sys.Name)
@@ -53,13 +53,19 @@ def CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsPro
         Volume = np.prod(Sys.BoxL)
         W = Sys.NDOF - 3*Sys.Pres*Volume
         Opt.AddPenalty("Virial", W, MeasureScale = 1./Sys.NAtom, Coef = 1.e-80) #HERE also need to scale the measure by 1/NAtom to be comparable to Srel
+
+    # add Rg constraints for multiple species
+    if RgConstrain:
+        for i,RgTar in enumerate(RgTars):
+            Opt.AddPenalty(measureRgs[i], RgTar, MeasureScale = 1., Coef = 1.e-80)
+
     return Opt
 
-def RunOpt(Opts, Weights, Prefix, UseWPenalty, MaxIter, SteepestIter, StageCoefs):
+def RunOpt(Opts, Weights, Prefix, UseWPenalty, MaxIter, SteepestIter, RgConstrain, StageCoefs=[1e8, 1e10, 1e12]):
 
     Optimizer = sim.srel.OptimizeMultiTrajClass(Opts, Weights=Weights)
     Optimizer.FilePrefix = ("{}".format(Prefix))
-    if not UseWPenalty:
+    if not UseWPenalty and not RgConstrain:
         Optimizer.RunConjugateGradient(MaxIter=MaxIter, SteepestIter=SteepestIter)
     else:
         Optimizer.RunStages(StageCoefs = StageCoefs)
