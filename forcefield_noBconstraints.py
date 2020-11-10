@@ -9,15 +9,14 @@ import sim
 print(sim)
 
 def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams,
-                              BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot,IsFixedExtPot):
+                              BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot):
     """BondParams: (atom1,atom2):[Dist0,FConst,Label]
        IsFixedBond: (atom1,atom2):[Dist0,FConst,Label], type = boolean
        LJGaussParams: (atom1,atom2):[B, kappa, Dist0, Cut, Sigma, Epsilon, Label ]
        IsFixedLJGauss: (atom1,atom2):[B, kappa, Dist0, Cut, Sigma, Epsilon, Label ] type = boolean
        SmearedCoulParams: (atom1,atom2): [BornA, Cut, Shift, FixedCoef, FixedBornA, Label]
        EwaldParams = {'ExcludeBondOrd': 3, 'Cut': Cut, 'Shift': True, 'Label': 'EW'}
-       ExtPot = {"UConst": 0, "NPeriods": 1, "PlaneAxis": 2, "PlaneLoc": 0., "AtomTypes":[]}
-       IsFixedExtPot = {"UConst": boolean, "NPeriods": boolean}"""
+       ExtPot = {"UConst": 0, "NPeriods": 1, "PlaneAxis": 2, "PlaneLoc": 0., "AtomTypes":[]}"""
    
     print("\nCreating forcefield for {}".format(Sys.Name))
     ForceField = []
@@ -58,6 +57,7 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
             ForceField.append(P)
     elif UseLJGauss:
         #Gaussian Pair
+        print('No constraints on Gaussian prefactor')
         for (atom1name,atom2name), params in sorted(LJGaussParams.items()):
             print('Adding {}\nCutoff {}'.format(params[6],params[3]))
             atom1 = AtomTypes[atom1name]
@@ -79,14 +79,7 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
                              Label = Label)
                 P.Param.B.Fixed = fixed[0]
                 #set bound of B, repulsive if i is even, attractive if i is odd
-                if i%2 == 0:
-                    P.Param.B.Min = 0.
-                    if  params[0] < 0.:
-                        P.Param.B = -params[0]
-                else:
-                    P.Param.B.Max = 0.
-                    if params[0] > 0.:
-                        P.Param.B = -params[0]
+                P.Param.B.Min = -100.
                 P.Param.Kappa.Fixed = fixed[1]
                 P.Param.Dist0.Fixed = fixed[2]
                 P.Param.Sigma.Fixed = fixed[4]
@@ -121,8 +114,6 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
                 print("Using external sinusoid with UConst {} on {}".format(P["UConst"],P['AtomTypes'])) 
                 P0 = sim.potential.ExternalSinusoid(Sys, Filter=FilterExt, UConst=P["UConst"], NPeriods=P["NPeriods"], 
                                            PlaneAxis=P["PlaneAxis"], PlaneLoc=P["PlaneLoc"], Label=P["Label"])
-                P0.UConst.Fixed = IsFixedExtPot['UConst']  
-                P0.NPeriods.Fixed = IsFixedExtPot['NPeriods']
                 ForceField.append(P0)
         else:
             print("Using external sinusoid with UConst {} on {}".format(ExtPot["UConst"],ExtPot['AtomTypes']))    
@@ -130,10 +121,8 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
             FilterExt = sim.atomselect.PolyFilter(Filters =[AtomTypesInExt]) 
             P0 = sim.potential.ExternalSinusoid(Sys, Filter=FilterExt, UConst=ExtPot["UConst"], NPeriods=ExtPot["NPeriods"],     
                           PlaneAxis=ExtPot["PlaneAxis"], PlaneLoc=ExtPot["PlaneLoc"], Label=ExtPot["Label"])
-
-            P0.UConst.Fixed = IsFixedExtPot['UConst']
-            P0.NPeriods.Fixed = IsFixedExtPot['NPeriods']
             ForceField.append(P0)
+
     return ForceField
     
     

@@ -6,10 +6,10 @@ Created on Fri Dec 13 10:25:20 2019
 @author: my
 """
 import sim
-import forcefield
+import forcefield_noBconstraints as forcefield
 def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams, ForceFieldFile,
                               NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, 
-                              Units = sim.units.AtomicUnits,RgConstrain=False, MolIdRgs=[],IsFixedExtPot = {"UConst": True, "NPeriods":True}):
+                              Units = sim.units.AtomicUnits):
 
     print("\nCreate system {}".format(SysName))
     AtomTypes = {}
@@ -65,7 +65,7 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
     # add forcefield 
     
     ForceField = forcefield.CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams,
-                              BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, IsFixedExtPot)
+                              BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot)
                                 
     Sys.ForceField.extend(ForceField)
 
@@ -74,15 +74,6 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
         with open(ForceFieldFile, 'r') as of: s = of.read()
         Sys.ForceField.SetParamString(s)      
         
-    if RgConstrain == True:
-        measureRgs = []
-        for i,MolIdRg in enumerate(MolIdRgs):
-            print('Adding RgEnsemble measurement for molecules of indices {}'.format(MolIdRg))
-            measureRg = sim.measure.rg.RgEnsemble(Sys, StepFreq = 1, MolIndices=MolIdRg) 
-            Sys.Measures.append(measureRg)
-            measureRgs.append(measureRg)
-    else:
-        measureRgs = []
     #set up the histograms
     for P in Sys.ForceField:
         P.Arg.SetupHist(NBin = 10000, ReportNBin=100)
@@ -108,5 +99,5 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
         Int.Method.Thermostat = Int.Method.ThermostatNoseHoover
         Int.Method.Barostat = Int.Method.BarostatMonteCarlo  
     
-    return Sys,measureRgs 
+    return Sys
 

@@ -11,10 +11,18 @@ sys.path.append('/home/mnguyen/bin/PECG/')
 import sim, pickleTraj
 #import mappoly_implicit as mappoly
 import mappoly
-import system 
-#import system_noBconstraints as system
-import optimizer
+import system, optimizer
 import numpy as np
+import argparse as ap
+
+parser = ap.ArgumentParser(description='recalculate hessian')
+parser.add_argument('ff_file',type=str, default=None, help='force field parameter filename')
+#parser.add_argument('label',type=str, help='label to distinguish output from this calculation')
+#parser.add_argument('-test', action='store_true', help='whether to use shorter test trajectory')
+#parser.add_argument('-recalc',type=bool, default=True, help='whether or not we are just recalculating')
+args = parser.parse_args()
+
+
 """
 run with mappoly.py (or mappoly_implicit.py), system.py, optimizer.py, forcefield.py
 Run expanded ensemble Srel opt. (number of System can be 1) with/without weights in NPT or NVT
@@ -54,7 +62,7 @@ kT = kB*TempRef
 kTkJmol = kT/1000.0*6.022e23
 kTkcalmol = kTkJmol/4.184
 Units = sim.units.DimensionlessUnits #sim.units.AtomicUnits
-lengthScale  = 3.1 # = CG length scale/ AA length scale = 3.1 A/ 1 A
+lengthScale  = 3.12 # = CG length scale/ AA length scale = 3.1 A/ 1 A
 if Units == sim.units.DimensionlessUnits:
     lengthScale = lengthScale
 else:
@@ -66,9 +74,9 @@ else:
 
 """TOPOLOGY"""
 #map AA traj to CG traj
-AAtrajs = ['/home/mnguyen/PE/PAA/AA/xp0.1_N12_f0_197NaCl_V328_LJPME_298K/f0/w0.13/NPT/trajectory298.dcd']
-AAtops = ['/home/mnguyen/PE/PAA/AA/xp0.1_N12_f0_197NaCl_V328_LJPME_298K/f0/w0.13/NPT/AA12_f0_opc_gaff2_w0.13_197Na+Cl-.parm7']
-stride = 4
+AAtrajs = ['/home/mnguyen/PE/nacl/AA/2Mnacl_opc/NVT/uext2_nacl/trajectory_2Mnacl_opc_Uext2_nacl_298K.dcd']
+AAtops = ['/home/mnguyen/PE/nacl/AA/2Mnacl_opc/NVT/uext2_nacl/6432opc_245nacl.parm7']
+stride = 10
 
 #map AA residue to CG bead name
 nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
@@ -83,29 +91,29 @@ nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
 #CG trajectories, if CGtrajs = [] will map AA traj, else will use provided CGtrajs
 CGtrajs = []
 #provide UniqueCGatomTypes if CGtrajs is not empty
-UniqueCGatomTypes = ['A','Na+','Cl-','HOH']
+UniqueCGatomTypes = ['Na+','Cl-','HOH']
 
 #name of molecules in systems
 #must in the right sequence as molecules in the trajectory
-MolNamesList = [['PAA','Na+','Cl-','HOH']]
+MolNamesList = [['Na+','Cl-','HOH']]
 
 # Topology of molecules in all systems: nSys x molecule types   
 MolTypesDicts = [{'PAA':['A','A']*6,'Na+':['Na+'],'Cl-':['Cl-'],'HOH':['HOH']}]
 
 # number of molecules for each molecule type, nSys x molecule types
-NMolsDicts = [{'PAA':31,'Na+': 197,'Cl-': 197,'HOH': 9849}]
+NMolsDicts = [{'PAA':0,'Na+': 245,'Cl-': 245,'HOH': 6432}]
 
 charges         = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0, 'A-': -1., 'B': 0., 'B+': 1., 'AE':0., 'BE':0., 'AE-': -1., 'BE+':1.}
 chargesNeutral  = {'Na+': 0., 'Cl-': 0.,  'HOH': 0., 'A': 0, 'A-': 0.,  'B': 0., 'B+': 0., 'AE':0., 'BE':0., 'AE-': 0. , 'BE+':0.}
 
-Name = 'PAA0_nacl'
+Name = 'nacl'
 
 """INTEGRATION PARAMS"""
 #real units: dt (ps), temp (K), pressure (atm)
-dt = 0.05
+dt = 0.1
 #TempSet and PresSet are lists 
 TempSet = [1.]
-PresSet = [8.52] #enter values to enable NPT
+PresSet = [] #enter values to enable NPT
 
 PresSet = np.array(PresSet)
 #PresSet *= 101325. #joules/m**3
@@ -120,37 +128,33 @@ UseOMM = True
 UseSim = False
 ScaleRuns = True
 StepScales = [] #set to empty if don't want to scale steps
-StepsEquil = 100./dt
-StepsProd = 2000./dt
-StepsStride = 200
+StepsEquil = 200./dt
+StepsProd = 10000./dt
+StepsStride = 100
 WeightSysByNMol = False
 WeightSysByNAtom = True
 
 UseWPenalty = False
-StageCoefs = [1e3,1e5, 1e8, 1e10]
+StageCoefs = []
 
 MaxIter=None
 SteepestIter=0
 
-RgConstrain=False
-MolIdRgList=[[range(0,10),range(10,20)]]
-RgTarList = [[1.3568/0.31,1.1892/0.31]]
-
 """FORCEFIELD"""
 """fix self interaction of water to value that reproduce the compressibility of pure water, u0 = 18.69kT, B = u0/(4 pi aev**2)**(3/2)"""
 SysLoadFF = True
-ForceFieldFile = 'ff_init.dat'
+ForceFieldFile = args.ff_file
 
 #fix Gaussian params of these pairs
-fixPairs = [('HOH','HOH'),('A','A'),('A','HOH'),('Na+','Na+'),('Cl-','Cl-'),('Na+','Cl-'),('Na+','HOH'),('Cl-','HOH')]
+fixPairs = [('HOH','HOH')]
 print('fixing Gaussian parameters of pairs {}'.format(fixPairs))
 
 #Excluded volume size for each atom type: a_ev = 1/(number density of this CG atom type)
-aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4.5/3.1, 'B+': 4.5/3.1, 'AE':4.5/3.1, 'AE-': 4.5/3.1, 'BE': 4.5/3.1, 'BE+':4.5/3.1}
+aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.12,'A-': 4.5/3.12, 'B': 4.5/3.12, 'B+': 4.5/3.12, 'AE':4.5/3.12, 'AE-': 4.5/3.12, 'BE': 4.5/3.12, 'BE+':4.5/3.12}
 aCoul_self = aevs_self.copy()
 
 #BondParams: (atom1,atom2):[Dist0,FConst,Label], FConts = kcal/mol/Angstrom**2
-BondParams = { ('A','A'):[1.1, 50*kTkcalmol, 'BondA_A']} #{('A-','A-'):[1., 2000, 'BondA-_A-']}
+BondParams = {} #{('A-','A-'):[1., 2000, 'BondA-_A-']}
 #{('A','A-'):[4., 50*kTkcalmol, 'BondA_A-'], ('A','A'):[4., 50*kTkcalmol, 'BondA_A'],
 #               ('B','B+'):[4., 50*kTkcalmol, 'BondB_B+'], ('B','B'):[4., 50*kTkcalmol, 'BondB_B']}
 
@@ -163,7 +167,7 @@ IsFixedBond = {('A','A-'):[False,False,True], ('A','A'):[False,False,True], ('A-
 #use spline or LJGauss for pair?
 UseLJGauss = True
 
-Cut = 8.
+Cut = 6.
 
 #Gauss
 #number of Gaussians for each pair type, if set {('All', 'All': n)}, all pairs have n Gaussians
@@ -172,7 +176,7 @@ NGaussDicts = {('All','All'): 1}
 #Initial B
 B0 = 0.5
 u0_HOH_HOH = 15.1
-BHOH_HOH = u0_HOH_HOH/(2 * np.pi * (aevs_self['HOH']**2+aevs_self['HOH']**2))**(3./2.) #B = u0/(2pi(ai^2+j^2))^3/2
+BHOH_HOH = 0.1 #u0_HOH_HOH/(2 * np.pi * (aevs_self['HOH']**2+aevs_self['HOH']**2))**(3./2.) #B = u0/(2pi(ai^2+j^2))^3/2
 LJGDist0 = 0.
 LJGSigma = 1.
 LJGEpsilon = 0.
@@ -193,19 +197,21 @@ FixedSpline = False
 #Smeared Coul
 SmearedCoulParams = {}
 EwaldCoef = 2.4
-#KMax = 10
 SCoulShift = True
 FixedCoef = False
 FixedBornA = False
 IsFixedCharge = True
 
 #Ewald params
-EwaldParams = {'ExcludeBondOrd': 0, 'Cut': Cut, 'Shift': True, 'Label': 'EW', 'Coef': EwaldCoef, 'EwaldNAtom': None, 'FixedCoef': FixedCoef} # 'KMax': KMax}
+EwaldParams = {'ExcludeBondOrd': 0, 'Cut': Cut, 'Shift': True, 'Label': 'EW', 'Coef': EwaldCoef, 'EwaldNAtom': None, 'FixedCoef': FixedCoef}
 
 #External Potential, ExtPot can be list of many external potentials
-UConst = 0.0 
-ExtPot = {"UConst": UConst, "NPeriods": 1, "PlaneAxis": 2, "PlaneLoc": 0., 'AtomTypes':'A',"Label":"UExtSin"}
-
+UConst = 2.0 
+ExtPot0 = {"UConst": UConst, "NPeriods": 1, "PlaneAxis": 2, "PlaneLoc": 0., 'AtomTypes':'Na+',"Label":"UExtSin_Na"} 
+ExtPot1 = {"UConst": UConst, "NPeriods": 1, "PlaneAxis": 2, "PlaneLoc": 0., 'AtomTypes':'Cl-',"Label":"UExtSin_Cl"} 
+ExtPot = [ExtPot0,ExtPot1]
+IsFixedExtPot =  {"UConst": False, "NPeriods":True}
+ 
 # Default Simulation Package Settings
 sim.export.lammps.NeighOne = 8000
 sim.export.lammps.UseTable2 = True
@@ -325,8 +331,6 @@ for i, MolTypesDict in enumerate(MolTypesDicts):
     SysName = Name+str(i)
     CGtraj = CGtrajs[i]
     BoxL = BoxLs[i] 
-    MolIdRgs = MolIdRgList[i]
-    RgTars = RgTarList[i]
     if UseNPT:
         Pres = PresSet[i]
     else:
@@ -338,16 +342,16 @@ for i, MolTypesDict in enumerate(MolTypesDicts):
     #create system and add forcefield, then create optimizer for each system
     if SrelOnNeutralSys:
         print('Optimizing params in neutral system but run MD on system with full electrostatics')
-        ElecSys,_ = system.CreateSystem(SysName+'Elec', BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
-                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units)
-        Sys,measureRgs  = system.CreateSystem(SysName+'Neutral', BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, chargesNeutral, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
-                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units,RgConstrain=RgConstrain,MolIdRgs=MolIdRgs)
+        ElecSys = system.CreateSystem(SysName+'Elec', BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
+                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, IsFixedExtPot=IsFixedExtPot,Units = Units)
+        Sys = system.CreateSystem(SysName+'Neutral', BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, chargesNeutral, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,          
+                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, IsFixedExtPot=IsFixedExtPot, Units = Units) 
     else:
-        Sys,measureRgs = system.CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
-                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units, RgConstrain=RgConstrain,MolIdRgs=MolIdRgs)
+        Sys = system.CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
+                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, IsFixedExtPot=IsFixedExtPot, Units = Units)
         ElecSys = None
 
-    Opt = optimizer.CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty,ElecSys = ElecSys, RgConstrain = RgConstrain,RgTars=RgTars,measureRgs=measureRgs)
+    Opt = optimizer.CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty,ElecSys = ElecSys, recalc=True)
 
     Opts.append(Opt)
     Systems.append(Sys)
@@ -355,21 +359,5 @@ for i, MolTypesDict in enumerate(MolTypesDicts):
     NMols.append(Sys.NMol)
 
 """Run Optimzation"""
-# Just always using the OptimizeMultiTrajClass
-Weights = [1.]*len(Opts)
-
-if WeightSysByNMol:
-    Weights = []
-    for NMol in NMols:
-        Weights.append(np.max(NMols)/float(NMol))
-    print ('Weights for Expanded Ensemble are:')
-    print (Weights)
-    
-elif WeightSysByNAtom:
-    Weights = []
-    for NAtom in NAtoms:
-        Weights.append(np.max(NAtoms)/float(NAtom))
-    print ('Weights for Expanded Ensemble are:')
-    print (Weights)
-optimizer.RunOpt(Opts, Weights, Name, UseWPenalty, MaxIter, SteepestIter, RgConstrain, StageCoefs=StageCoefs)
+optimizer.recalc(Opts,Prefix=Name+'_recalc')
 

@@ -9,7 +9,7 @@ import sim
 import os
 import numpy as np
 
-def CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty, ElecSys=None, RgConstrain=False,RgTars=[1.],measureRgs=None):
+def CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty, ElecSys=None, RgConstrain=False,RgTars=[1.],measureRgs=None,recalc=False):
     # Perform atom mapping for specific system
     Map = sim.atommap.PosMap()
     print(Sys.Name)
@@ -58,7 +58,23 @@ def CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsPro
     if RgConstrain:
         for i,RgTar in enumerate(RgTars):
             Opt.AddPenalty(measureRgs[i], RgTar, MeasureScale = 1., Coef = 1.e-80)
+    if recalc:
+        Opt.CheckReady()
+        Opt.StartIter = Opt.Iter
+        SearchDirIter = 0
+        Opt.Mode = "INIT"
+        Opt.Backtracking = False
+        Opt.UseMaxChange = False
+        Opt.PrevLineSearch = False
+        Opt.CGRestartCount = 0
+        Opt.Initdx()
 
+        Opt.InitConstraints(Verbose = Opt.Verbose)
+        Opt.SetParam(Opt.Param)
+        if Opt.Verbose:
+            print Opt.Output0()
+        Opt.OutputTarHistFile()
+        Opt.ReweightTar = False #i.e. make a new model trajectory
     return Opt
 
 def RunOpt(Opts, Weights, Prefix, UseWPenalty, MaxIter, SteepestIter, RgConstrain, StageCoefs=[1e8, 1e10, 1e12]):
@@ -69,4 +85,48 @@ def RunOpt(Opts, Weights, Prefix, UseWPenalty, MaxIter, SteepestIter, RgConstrai
         Optimizer.RunConjugateGradient(MaxIter=MaxIter, SteepestIter=SteepestIter)
     else:
         Optimizer.RunStages(StageCoefs = StageCoefs)
+def recalc(Opts,Prefix):
+    import time
+    StartTime = time.time()
+    #Opt = Opts[0] 
+
+    Opt = sim.srel.OptimizeMultiTrajClass(Opts)
+    Opt.FilePrefix = ("{}".format(Prefix))
+
+    print('===== Begin recalculating trajectory and parametric derivatives =====')
+    if not Opt.ReweightTar:
+        Opt.UpdateModTraj()
+        Opt.OutputModHistFile()
+        Opt.OutputPlot()
+
+    NotFixed = np.logical_not(Opt.Fixed)
+    Opt.CalcObj(CalcDeriv = True)
+
+    print("=== Hessian/DDSrel ===")
+    np.savetxt("{}_Hessian.dat".format(Prefix),Opt.DDObj)
+
+    Ignore = Opt.Fixed.copy()
+    for i in Opt.Constrained:
+        Ignore[i] = True
+
+    for (i, ThisDObj) in enumerate(Opt.DDObj):
+        if all(Opt.DDObj[i,:] == 0):
+            Ignore[i] = True
+
+    Use = np.logical_not(Ignore)
+
+    DObj = Opt.DObj[Use]
+    DDObj = Opt.DDObj[np.ix_(Use, Use)] + Opt.HessianPad * np.identity(len(DObj))
+
+    print('Used variables: {}'.format(Use))
+    print('Non-zero Hessian:\n{}'.format(DDObj))
+    np.savetxt('{}_Hessian_masked.dat'.format(Prefix),DDObj)
+
+    print("=== Gradient/DSrel ===")
+    np.savetxt('{}_grad.dat'.format(Prefix),Opt.DObj)
+    print('Non-zero Grad:\n{}'.format(DObj))
+    np.savetxt('{}_grad_masked.dat'.format(Prefix),DObj)
+
+    print("=== Misc. ===")
+    print("Total recalculation runtime: {}min".format( (time.time()-StartTime)/60. ))
 
