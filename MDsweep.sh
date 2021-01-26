@@ -8,30 +8,37 @@
 #SBATCH --mail-user=my@ucsb.edu
 
 module load intel/18
+export PATH=/home/mnguyen/lammps-7Aug19/bin/:$PATH
+export PATH="/home/mnguyen/miniconda3/envs/py2/bin/:$PATH"
+export PYTHONPATH=/home/mnguyen/bin/sim_git:$PYTHONPATH
 
-ext=PE_xp0.05_7AA12f1_7AH12f1_197nacl_NPT_1_1_1_
+ext=xp0.1_10AA24f1_10AH24f1_325nacl_12500hoh_1_2_1
 Name="'PE'"
 ff=PE_ff.dat
 
-dirNameA=('xp0.05_7AA12f1_7AH12f1_197nacl_NPT')
-nPAAs=(7)
-nPAHs=(7)
-nNaA=(197)
-nClA=(197)
-nHOHA=(10396)
-volA=(11232.694)
+dirNameA=('11wtpercentPE_0.3MNaCl_10AA24f1_10AH24f1_325nacl_12500hoh_elong')
+nPAAs=(10)
+nPAHs=(10)
+nNaA=(325)
+nClA=(325)
+nHOHA=(12500)
+#volA=(14200.)
 MolNamesList=["'PAA','PAH', 'Na+', 'Cl-','HOH'"]
 
-PAAstructureA=(["'A-'"]*12)
-PAHstructureA=(["'B+'"]*12)
+PAAstructureA=(["'A-'"]*24)
+PAHstructureA=(["'B+'"]*24)
 
 #MD
+Lxs=(18.)
+Lys=(18.)
+Lzs=(45.)
 dt=0.05 #0.1
 P=8.520
-tau=8000.
-equilTau=100.
-Stride=40
-cut=8.
+anisotropicZ=True
+tau=100000.
+equilTau=500.
+Stride=500
+cut=8.5
 UseOMM=True
 UseLammps=False
 OMP_NumThread=8
@@ -63,7 +70,9 @@ for ((i=0;i<$length;i++)); do
     nNa=${nNaA[$i]}
     nCl=${nClA[$i]}
     nHOH=${nHOHA[$i]}
-    vol=${volA[$i]}
+    Lx=${Lxs[$i]}
+    Ly=${Lys[$i]}
+    Lz=${Lzs[$i]}
     PAAstructure=${PAAstructureA[$i]}
     PAHstructure=${PAHstructureA[$i]}
 
@@ -71,7 +80,7 @@ for ((i=0;i<$length;i++)); do
 #    mydir=${nNa}Na_${nCl}Cl_${nHOH}HOH
     mkdir $mydir
     cp $ff $mydir/.
-    cp MDmain_template.py $mydir/MDmain.py
+    cp MDmain_template_elong.py $mydir/MDmain.py
     cp pod_template.sh $mydir/pod.sh
     echo === ${mydir} ===
     sed -i "s/__Name__/${Name}/g" $mydir/MDmain.py
@@ -84,9 +93,13 @@ for ((i=0;i<$length;i++)); do
     sed -i "s/__PAHstructure__/${PAHstructure}/g" $mydir/MDmain.py
     sed -i "s/__MolNamesList__/${MolNamesList}/g" $mydir/MDmain.py
 
-    sed -i "s/__vol__/${vol}/g" $mydir/MDmain.py
+    sed -i "s/__Lx__/${Lx}/g" $mydir/MDmain.py
+    sed -i "s/__Ly__/${Ly}/g" $mydir/MDmain.py
+    sed -i "s/__Lz__/${Lz}/g" $mydir/MDmain.py
+#    sed -i "s/__vol__/${vol}/g" $mydir/MDmain.py
     sed -i "s/__dt__/${dt}/g" $mydir/MDmain.py     
     sed -i "s/__P__/${P}/g" $mydir/MDmain.py
+    sed -i "s/__anisotropicZ__/${anisotropicZ}/g" $mydir/MDmain.py
     sed -i "s/__tau__/${tau}/g" $mydir/MDmain.py
     sed -i "s/__Stride__/${Stride}/g" $mydir/MDmain.py
     sed -i "s/__ff__/'${ff}'/g" $mydir/MDmain.py
@@ -109,6 +122,7 @@ for ((i=0;i<$length;i++)); do
 #    sed -i "s/__traj__/${traj}/g" $mydir/pod.sh
 #    sed -i "s/__scale__/${scale}/g" $mydir/pod.sh
     cd $mydir
-    qsub pod.sh
+#    qsub pod.sh
+    python MDmain.py
     cd ..
 done
