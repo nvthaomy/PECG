@@ -9,7 +9,7 @@ import sim
 import forcefield
 def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams, ForceFieldFile,
                               NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, 
-                              Units = sim.units.AtomicUnits,RgConstrain=False, MolIdRgs=[],IsFixedExtPot = {"UConst": True, "NPeriods":True}):
+                              Units = sim.units.AtomicUnits,RgConstrain=False, MolIdRgs=[],IsFixedExtPot = {"UConst": True, "NPeriods":True}, StepsStride=StepsStride):
 
     print("\nCreate system {}".format(SysName))
     AtomTypes = {}
@@ -78,7 +78,7 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
         measureRgs = []
         for i,MolIdRg in enumerate(MolIdRgs):
             print('Adding RgEnsemble measurement for molecules of indices {}'.format(MolIdRg))
-            measureRg = sim.measure.rg.RgEnsemble(Sys, StepFreq = 1, MolIndices=MolIdRg) 
+            measureRg = sim.measure.rg.RgEnsemble(Sys, StepFreq = StepsStride, MolIndices=MolIdRg) 
             Sys.Measures.append(measureRg)
             measureRgs.append(measureRg)
     else:
