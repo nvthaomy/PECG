@@ -76,11 +76,22 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
         
     if RgConstrain == True:
         measureRgs = []
-        for i,MolIdRg in enumerate(MolIdRgs):
-            print('Adding RgEnsemble measurement for molecules of indices {}'.format(MolIdRg))
-            measureRg = sim.measure.rg.RgEnsemble(Sys, StepFreq = StepsStride, MolIndices=MolIdRg) 
-            Sys.Measures.append(measureRg)
-            measureRgs.append(measureRg)
+        try:
+            for i,MolIdRg in enumerate(MolIdRgs):
+                print('Adding RgEnsemble (new) measurement for molecules of indices {}'.format(MolIdRg))
+                measureRg = sim.measure.rg.Rg(Sys, StepFreq = StepsStride, MolIndices=MolIdRg)
+                Sys.Measures.append(measureRg)
+                measureRgs.append(measureRg)
+        except:
+            print('Failed adding Rg (new) measurement')
+            try:    
+                for i,MolIdRg in enumerate(MolIdRgs):
+                    print('Adding RgEnsemble (old) measurement for molecules of indices {}'.format(MolIdRg))
+                    measureRg = sim.measure.rg.RgEnsemble(Sys, StepFreq = StepsStride, MolIndices=MolIdRg) 
+                    Sys.Measures.append(measureRg)
+                    measureRgs.append(measureRg)
+            except:
+                print('Failed adding RgEnsemble measurement')
     else:
         measureRgs = []
     #set up the histograms
