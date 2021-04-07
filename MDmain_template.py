@@ -46,8 +46,7 @@ nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
                'ATP':'A', 'AHP':'A', 'AP': 'A', 'ATD': 'A-', 'AHD': 'A-', 'AD': 'A-',
                'NTP':'B+', 'NHP':'B+', 'NP': 'B+', 'NTD': 'B', 'NHD': 'B', 'ND': 'B'}
 #dimensionless (average volume from NPT)
-L = __vol__**(1./3.) 
-BoxLs = [[L,L,L]]
+BoxLs = [[__Lx__,__Ly__,__Lz__]]
 
 #name of molecules in systems
 #must in the right sequence as molecules in the trajectory
@@ -85,7 +84,7 @@ IntParams = {'TimeStep': dt, 'LangevinGamma': 1/(100*dt)}
 RunMD = True
 UseLammps = __UseLammps__
 UseOMM = __UseOMM__
-UseSim = False
+UseSim = __UseSim__
 StepsMin = 1000
 StepScales = [] #set to empty if don't want to scale steps
 StepsEquil = __equilTau__/dt 
@@ -277,7 +276,7 @@ for i, MolTypesDict in enumerate(MolTypesDicts):
     else:
         StepScale = None
     #create system and add forcefield, then create optimizer for each system
-    Sys = system.CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
+    Sys,_  = system.CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
                               NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units)
 
     Systems.append(Sys)

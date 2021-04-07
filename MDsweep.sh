@@ -41,6 +41,7 @@ Stride=500
 cut=8.5
 UseOMM=True
 UseLammps=False
+UseSim=False
 OMP_NumThread=8
 OPENMM_CPU_THREADS=$OMP_NumThread
 #FEP
@@ -106,6 +107,7 @@ for ((i=0;i<$length;i++)); do
     sed -i "s/__cut__/${cut}/g" $mydir/MDmain.py
     sed -i "s/__UseOMM__/${UseOMM}/g" $mydir/MDmain.py
     sed -i "s/__UseLammps__/${UseLammps}/g" $mydir/MDmain.py
+    sed -i "s/__UseSim__/${UseSim}/g" $mydir/MDmain.py
     sed -i "s/__OMP_NumThread__/${OMP_NumThread}/g" $mydir/MDmain.py
     sed -i "s/__ThermoSlice__/${ThermoSlice}/g" $mydir/MDmain.py
     sed -i "s/__TrajSlice__/${TrajSlice}/g" $mydir/MDmain.py
