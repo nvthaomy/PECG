@@ -8,7 +8,8 @@ Created on Thu Dec 12 18:11:03 2019
 import sim, pickleTraj
 import sys
 sys.path.append('/home/mnguyen/bin/PECG/')
-import system, optimizer, fepcg
+import system_elong as system
+import optimizer, fepcg
 import numpy as np
 import MDAnalysis as mda
 import os,sys
@@ -46,8 +47,8 @@ nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
                'ATP':'A', 'AHP':'A', 'AP': 'A', 'ATD': 'A-', 'AHD': 'A-', 'AD': 'A-',
                'NTP':'B+', 'NHP':'B+', 'NP': 'B+', 'NTD': 'B', 'NHD': 'B', 'ND': 'B'}
 #dimensionless (average volume from NPT)
-L = __vol__**(1./3.) 
-BoxLs = [[L,L,L]]
+#L = __vol__**(1./3.) 
+BoxLs = [[__Lx__,__Ly__,__Lz__]]
 
 #name of molecules in systems
 #must in the right sequence as molecules in the trajectory
@@ -57,7 +58,6 @@ MolTypesDicts = [{'PAA':__PAAstructure__,'PAH':__PAHstructure__,'Na+':['Na+'],'C
 # number of molecules for each molecule type, nSys x molecule types
 NMolsDicts = [{'PAA':__nPAA__,'PAH':__nPAH__,'Na+':__nNa__,'Cl-':__nCl__,'HOH':__nHOH__}]
 charges         = {'Na+': 1., 'Cl-': -1., 'HOH': 0., 'A': 0, 'A-': -1., 'B': 0., 'B+': 1., 'AE':0., 'BE':0., 'AE-': -1., 'BE+':1.}
-
 Name = __Name__
 
 #get UniqueCGatomTypes
@@ -74,7 +74,7 @@ print(UniqueCGatomTypes)
 dt = __dt__
 TempSet = [1.]
 PresSet = [__P__] #enter values to enable NPT
-
+sim.export.omm.anisotropicZ = __anisotropicZ__
 PresSet = np.array(PresSet)
 #PresSet *= 101325. #joules/m**3
 #PresSet *= (10.**-10.)**3. * 0.000239006 *6.022e23 #kcal/mol/A**3
@@ -92,7 +92,7 @@ StepsEquil = __equilTau__/dt
 StepsProd = __tau__/dt
 StepsStride = __Stride__
 MDRestartFile = None #None: dont read restart file
-Checkpnt = None # checkpoint if use omm
+Checkpnt = None # restart file if use omm
 """FEP Params"""
 CalChemPot = False
 FEPDir = __FEPDir__
@@ -268,6 +268,17 @@ for i, MolTypesDict in enumerate(MolTypesDicts):
     Temp = TempSet[i]
     SysName = Name+str(i)
     BoxL = BoxLs[i] 
+
+    nMonomers=0
+    try:
+        nMonomers += len(MolTypesDict['PAA']) * NMolsDict['PAA']
+    except:
+        pass
+    try:
+        nMonomers += len(MolTypesDict['PAH']) * NMolsDict['PAH']
+    except:
+        pass
+
     if UseNPT:
         Pres = PresSet[i]
     else:
@@ -278,7 +289,8 @@ for i, MolTypesDict in enumerate(MolTypesDicts):
         StepScale = None
     #create system and add forcefield, then create optimizer for each system
     Sys = system.CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
-                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units)
+                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units,
+                              nMonomers=nMonomers,L=BoxL,a=lengthScale/10.)
 
     Systems.append(Sys)
     NAtoms.append(Sys.NAtom)

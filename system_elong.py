@@ -9,7 +9,7 @@ import sim
 import forcefield
 def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams, ForceFieldFile,
                               NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, 
-                              Units = sim.units.AtomicUnits,RgConstrain=False, MolIdRgs=[],IsFixedExtPot = {"UConst": True, "NPeriods":True}, StepsStride=1):
+                              IsFixedExtPot = {"UConst": True, "NPeriods":True} ,Units = sim.units.AtomicUnits, nMonomers=10,L=[1.,1.,1.],a=0.31):
 
     print("\nCreate system {}".format(SysName))
     AtomTypes = {}
@@ -74,39 +74,32 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
         with open(ForceFieldFile, 'r') as of: s = of.read()
         Sys.ForceField.SetParamString(s)      
         
-    if RgConstrain == True:
-        measureRgs = []
-        try:
-            for i,MolIdRg in enumerate(MolIdRgs):
-                print('Adding RgEnsemble (new) measurement for molecules of indices {}'.format(MolIdRg))
-                measureRg = sim.measure.rg.Rg(Sys, StepFreq = StepsStride, MolIndices=MolIdRg)
-                Sys.Measures.append(measureRg)
-                measureRgs.append(measureRg)
-        except:
-            print('Failed adding Rg (new) measurement')
-            try:    
-                for i,MolIdRg in enumerate(MolIdRgs):
-                    print('Adding RgEnsemble (old) measurement for molecules of indices {}'.format(MolIdRg))
-                    measureRg = sim.measure.rg.RgEnsemble(Sys, StepFreq = StepsStride, MolIndices=MolIdRg) 
-                    Sys.Measures.append(measureRg)
-                    measureRgs.append(measureRg)
-            except:
-                print('Failed adding RgEnsemble measurement')
-    else:
-        measureRgs = []
     #set up the histograms
     for P in Sys.ForceField:
         P.Arg.SetupHist(NBin = 10000, ReportNBin=100)
     # lock and load
-    Sys.Load()
+#    Sys.Load()
 
 
     #initial positions and velocities
-    sim.system.positions.CubicLattice(Sys)
+#    sim.system.positions.CubicLattice(Sys)
     sim.system.velocities.Canonical(Sys, Temp = Temp)
     Sys.TempSet = Temp
     Sys.PresSet = Pres
-    
+
+    # center monomers at the center of an elongated box, assume elongated in the z direction
+    import numpy as np
+    nMonomers =nMonomers
+    Lz = L[2]
+    Lx = L[0]
+    Ly = L[1]
+    polyRho = 11.5 #nm-3
+    polyV = float(nMonomers)/polyRho/a**3 # minimum volume to pack polymers, convert to dimensionless units
+    polyL = polyV/Lx/Ly * 1.5 # multiply by 1.5 to avoid overlap
+    polyPos = np.random.rand(nMonomers,3) * np.array([Lx,Ly,polyL]) + np.array([0.,0.,Lz/2. - 0.5*polyL])
+    Sys.Pos = np.random.rand(Sys.NAtom,3) * np.array([Lx,Ly,Lz])
+    Sys.Pos[:nMonomers,:] = polyPos
+ 
     #configure integrator
     Int = Sys.Int
     Int.Method = Int.Methods.VVIntegrate        
@@ -119,5 +112,5 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
         Int.Method.Thermostat = Int.Method.ThermostatNoseHoover
         Int.Method.Barostat = Int.Method.BarostatMonteCarlo  
     
-    return Sys,measureRgs 
+    return Sys
 

@@ -341,10 +341,10 @@ for i, MolTypesDict in enumerate(MolTypesDicts):
         ElecSys,_ = system.CreateSystem(SysName+'Elec', BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
                               NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units)
         Sys,measureRgs  = system.CreateSystem(SysName+'Neutral', BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, chargesNeutral, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
-                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units,RgConstrain=RgConstrain,MolIdRgs=MolIdRgs)
+                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units,RgConstrain=RgConstrain,MolIdRgs=MolIdRgs,StepsStride=StepsStride)
     else:
         Sys,measureRgs = system.CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
-                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units, RgConstrain=RgConstrain,MolIdRgs=MolIdRgs)
+                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units, RgConstrain=RgConstrain,MolIdRgs=MolIdRgs,StepsStride=StepsStride)
         ElecSys = None
 
     Opt = optimizer.CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty,ElecSys = ElecSys, RgConstrain = RgConstrain,RgTars=RgTars,measureRgs=measureRgs)
