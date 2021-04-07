@@ -6,7 +6,7 @@ import mdtraj as md
 
 
 ''' USER INPUTS '''
-traj_cg = ['tmp04zVYP1.lammpstrj'] # the cg traj file    
+traj_cg = ['tmp7DFA3c1.lammpstrj'] # the cg traj file    
   
 traj_ref = 'testsim_trj.lammpstrj' # the reference traj file
 
@@ -16,7 +16,7 @@ refTrajWarmup = 0
 refTrajSlice = 1
 ScaleRefTraj = 10. # incase you need to scale traj by 10. to get into Angstroms 
 ScaleCGTraj  = 10. 
-ShiftCoords = 0. # shift refTraj and CGTraj, not necessary if using .dcd files
+ShiftCoords = 1. # shift refTraj and CGTraj, not necessary if using .dcd files
 
 # for custom topology
 NPol = 1
@@ -43,7 +43,7 @@ for i in range(NPol):
         if j > 0: # add bonds
             top_.add_bond(top_.atom(cnt-1),top_.atom(cnt))
             bondedpairs.append([top_.atom(cnt-1).index,top_.atom(cnt).index])
-            cnt += 1
+        cnt += 1
 
 bondedpairs = np.asarray(bondedpairs,dtype='int32')
 np.savetxt("bondedpairs.txt",bondedpairs)
@@ -96,14 +96,13 @@ def CalculateRg(_traj,_scale):
         RgData.append(Rg*_scale)
         
     RgData = np.asarray(RgData)
-    print('RgData Shape: {}'.format(RgData.shape))
+    #print('RgData Shape: {}'.format(RgData.shape))
     
     RgAvgPerFrame = np.average(RgData,axis=0)
-    print('RgAvgPerFrame Shape: {}'.format(RgAvgPerFrame.shape))
+    #print('RgAvgPerFrame Shape: {}'.format(RgAvgPerFrame.shape))
     
     return RgAvgPerFrame
 
-#Not Used Currently
 def CalculateRgMinImage(_traj,_scale):
     ''' 
         Calculate the Rg on each frame.
@@ -120,10 +119,9 @@ def CalculateRgMinImage(_traj,_scale):
         _atoms = _traj.topology.select('chainid == {}'.format(_chain.index))
         # initialize memory for min. imaged positions along chain backbone
         atompos = np.zeros((_traj.n_frames,len(_atoms),3))
+        bonddis = np.zeros((_traj.n_frames,len(_atoms)-1))
         for _j,_atomindx in enumerate(_atoms):
             if _j == 0:
-                # start from atom 1
-                #atompos[:,_j,:] = _traj.xyz[:,_atoms[_j],:]
                 continue
             else: 
                 _p1 = _traj.xyz[:,int(_atomindx-1)]
@@ -131,28 +129,20 @@ def CalculateRgMinImage(_traj,_scale):
                 dPos = _p2 - _p1
                 dPos = dPos - np.rint(dPos/_boxL)*_boxL
                 atompos[:,int(_j),:] = atompos[:,int(_j-1),:] + dPos
-        
-        np.savetxt('atompos.txt',(atompos[:,0,0],atompos[:,1,0],atompos[:,2,0]))
-        np.savetxt('atompos_traj.txt',_traj.xyz[0])
+                
+                magdPos = np.sum(dPos*dPos,axis=1)
+                magdPos = np.sqrt(magdPos)
+                bonddis[:,int(_j-1)] = magdPos
         
         _comperframe = np.average(atompos,axis=1) 
-        print('COM Shape')
-        print(_comperframe.shape)
         
         _dist = atompos - _comperframe[:,None,:]
         _distsq = np.sum(_dist*_dist,axis=2)
         
-        print('Dist Sq Shape')
-        print(_distsq.shape)
-        
         _Rg = np.sqrt(np.sum(_distsq,axis=1)/len(_atoms))*_scale
         RgData[:,_i] = _Rg
         
-        
-    print('RgData Shape: {}'.format(RgData.shape))
-    
     RgAvgPerFrame = np.average(RgData,axis=1)
-    print('RgAvgPerFrame Shape: {}'.format(RgAvgPerFrame.shape))
     
     return RgAvgPerFrame
 
@@ -183,9 +173,6 @@ def CalcDFBiasDLambda(_coef,_RgAvg,_Rg_Tar,_DRgDLambdaAvg):
 refTraj = md.load(traj_ref,top=top_,stride=int(refTrajSlice))
 refTraj = refTraj[refTrajWarmup:]
 refTraj.xyz[:] = refTraj.xyz[:]+ShiftCoords
-
-#refTraj.save_lammpstrj('test.lammpstrj')
-#np.savetxt('refTrajUnitcellvectors.txt',refTraj.unitcell_lengths)
 
 print ("***Reference Trajectory***")
 print ("Unit cell:")
@@ -268,12 +255,12 @@ for _cgindex,_cgtraj in enumerate(traj_cg):
 
     ''' Plot and Calculate DFobj/DRo & DFbias/DRo & DRgDRo '''
 
-    # Calculate DRgDRo
-    refRgAvgPerFrame = CalculateRg(refTraj,ScaleRefTraj)
+    # Calculate DRgDRo    
+    refRgAvgPerFrame = CalculateRgMinImage(refTraj,ScaleRefTraj)
     np.savetxt('refRgAvgPerFrame.txt',refRgAvgPerFrame)
     refRgAvg = np.average(refRgAvgPerFrame)
     
-    RgAvgPerFrame = CalculateRg(cgTraj,ScaleCGTraj) 
+    RgAvgPerFrame = CalculateRgMinImage(cgTraj,ScaleCGTraj) 
     RgAvg = np.average(RgAvgPerFrame)
     
     DRgDLambdaAvg,DUDLambdaRg = CalcDRgDLambda(cgDUbond,RgAvgPerFrame)
@@ -306,4 +293,3 @@ for _cgindex,_cgtraj in enumerate(traj_cg):
         fout.write('    DUD{} refTraj:  {}\n'.format(BondParam,refDUbondAvg))
         fout.write('    DFObjD{}:       {}\n'.format(BondParam,DFObjDLambda))
     
-
