@@ -207,6 +207,7 @@ UConst = 0.0
 ExtPot = {"UConst": UConst, "NPeriods": 1, "PlaneAxis": 2, "PlaneLoc": 0., 'AtomTypes':'A',"Label":"UExtSin"}
 
 # Default Simulation Package Settings
+sim.srel.base.nProcessors = 1
 sim.export.lammps.NeighOne = 8000
 sim.export.lammps.UseTable2 = True
 sim.export.lammps.InnerCutoff = 1.e-6
