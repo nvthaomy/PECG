@@ -71,7 +71,7 @@ AAtops = ['/home/mnguyen/PE/PAA/AA/xp0.1_N12_f0_197NaCl_V328_LJPME_298K/f0/w0.13
 stride = 4
 
 #map AA residue to CG bead name
-nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
+nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH', 'NA+':'Na+', 'CL-':'Cl-',
                'ATP':'A', 'AHP':'A', 'AP': 'A', 'ATD': 'A-', 'AHD': 'A-', 'AD': 'A-',
                'NTP':'B+', 'NHP':'B+', 'NP': 'B+', 'NTD': 'B', 'NHD': 'B', 'ND': 'B'}
 
@@ -146,6 +146,7 @@ fixPairs = [('HOH','HOH'),('A','A'),('A','HOH'),('Na+','Na+'),('Cl-','Cl-'),('Na
 print('fixing Gaussian parameters of pairs {}'.format(fixPairs))
 
 #Excluded volume size for each atom type: a_ev = 1/(number density of this CG atom type)
+#aevs_self = {'Na+': 0.75/0.31, 'Cl-': 0.75/0.31, 'HOH': 0.75/0.31, 'A': 1./0.31,'A-': 1./0.31, 'B': 1./0.31, 'B+': 1./0.31, 'AE':1./0.31, 'AE-': 1./0.31, 'BE': 1./0.31, 'BE+':1./0.31}
 aevs_self = {'Na+': 1., 'Cl-': 1., 'HOH': 1., 'A': 4.5/3.1,'A-': 4.5/3.1, 'B': 4.5/3.1, 'B+': 4.5/3.1, 'AE':4.5/3.1, 'AE-': 4.5/3.1, 'BE': 4.5/3.1, 'BE+':4.5/3.1}
 aCoul_self = aevs_self.copy()
 
