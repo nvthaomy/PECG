@@ -34,7 +34,7 @@ Lys=(18.)
 Lzs=(45.)
 dt=0.05 #0.1
 P=8.520
-anisotropicZ=True
+PresAx=None #0 1 2
 tau=100000.
 equilTau=500.
 Stride=500
@@ -100,7 +100,7 @@ for ((i=0;i<$length;i++)); do
 #    sed -i "s/__vol__/${vol}/g" $mydir/MDmain.py
     sed -i "s/__dt__/${dt}/g" $mydir/MDmain.py     
     sed -i "s/__P__/${P}/g" $mydir/MDmain.py
-    sed -i "s/__anisotropicZ__/${anisotropicZ}/g" $mydir/MDmain.py
+    sed -i "s/__PresAx__/${PresAx}/g" $mydir/MDmain.py
     sed -i "s/__tau__/${tau}/g" $mydir/MDmain.py
     sed -i "s/__Stride__/${Stride}/g" $mydir/MDmain.py
     sed -i "s/__ff__/'${ff}'/g" $mydir/MDmain.py

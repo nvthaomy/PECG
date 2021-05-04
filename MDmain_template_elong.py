@@ -74,7 +74,14 @@ print(UniqueCGatomTypes)
 dt = __dt__
 TempSet = [1.]
 PresSet = [__P__] #enter values to enable NPT
-sim.export.omm.anisotropicZ = __anisotropicZ__
+PresAx = __PresAx__
+if PresAx == 0:
+    sim.export.omm.anisotropicX = True
+elif PresAx == 1:
+    sim.export.omm.anisotropicY = True
+elif PresAx == 2:
+    sim.export.omm.anisotropicZ = True
+
 PresSet = np.array(PresSet)
 #PresSet *= 101325. #joules/m**3
 #PresSet *= (10.**-10.)**3. * 0.000239006 *6.022e23 #kcal/mol/A**3
@@ -291,7 +298,8 @@ for i, MolTypesDict in enumerate(MolTypesDicts):
     Sys = system.CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
                               NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units,
                               nMonomers=nMonomers,L=BoxL,a=lengthScale/10.)
-
+    if PresAx:
+        Sys.PresAx = PresAx
     Systems.append(Sys)
     NAtoms.append(Sys.NAtom)
     NMols.append(Sys.NMol)
