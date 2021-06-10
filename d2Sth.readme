@@ -1,0 +1,31 @@
+/home/mnguyen/PE/nacl/AA/2Mnacl_opc/NVT/uext2_nacl/trajectory_2Mnacl_opc_Uext2_nacl_298K.dcd
+/home/mnguyen/PE/nacl/AA/2Mnacl_opc/NVT/uext2_nacl/6432opc_245nacl.parm7
+export PATH=/home/mnguyen/lammps-7Aug19/bin/:$PATH
+export PATH="/home/mnguyen/miniconda3/envs/py2/bin/:$PATH"
+export PYTHONPATH=/home/mnguyen/bin/sim_git:$PYTHONPATH
+
+python z_recalc.py nacl_ff_init.dat recalc_init -test
+python z_recalc.py nacl_ff_init.dat recalc_init
+
+python z_recalc.py nacl_ff.dat recalc_relax -test
+python z_recalc.py nacl_ff.dat recalc_relax
+
+===== To calculate thermo Srel we need =====
+0) Holding interactions fixed, relax the external potential
+    --> here, done by modifying forcefield.py to unfix external potential, modifying main.py to hold pairwise interactions fixed, then re-running main.py
+
+   python main.py: with IsFixedExtPot =  {"UConst": False, "NPeriods":True}
+
+1) Create modified optimizer file to enable recalculation of DDSrel (just re-running trajectory)
+    --> and a modified "main.py" (here named "z_recalc.py") to use the modified optimizer
+2) Recalculate DDSrel of the current system
+
+   python main_recalc.py nacl_ff.dat: with with IsFixedExtPot =  {"UConst": False, "NPeriods":True}
+
+3) Recalculate DDSrel of the system with a relaxed external potential
+
+   python main_recalc.py nacl_ff.dat: with with IsFixedExtPot =  {"UConst": False, "NPeriods":True}
+
+4) Run the d2Sth.py script
+    --> output is in d2S_th.txt (is a matrix)
+   python ~/bin/PECG/calc_d2Sth.py <label> <hessian_file of the original CG> <hessian_relaxed_file> 
