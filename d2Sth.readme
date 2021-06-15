@@ -14,8 +14,8 @@ python z_recalc.py nacl_ff.dat recalc_relax
 0) Holding interactions fixed, relax the external potential
     --> here, done by modifying forcefield.py to unfix external potential, modifying main.py to hold pairwise interactions fixed, then re-running main.py
 
-   python main.py: with IsFixedExtPot =  {"UConst": False, "NPeriods":True}
-
+   python main.py: with IsFixedExtPot =  {"UConst": False, "NPeriods":True}, fix pairwise interactions
+     
 1) Create modified optimizer file to enable recalculation of DDSrel (just re-running trajectory)
     --> and a modified "main.py" (here named "z_recalc.py") to use the modified optimizer
 2) Recalculate DDSrel of the current system
@@ -28,4 +28,6 @@ python z_recalc.py nacl_ff.dat recalc_relax
 
 4) Run the d2Sth.py script
     --> output is in d2S_th.txt (is a matrix)
+   thermo info/res. info =   ratio = eth[indmax] / np.linalg.norm( d2Sres @ dth[:,indmax] )
+
    python ~/bin/PECG/calc_d2Sth.py <label> <hessian_file of the original CG> <hessian_relaxed_file> 
