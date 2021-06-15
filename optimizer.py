@@ -9,7 +9,7 @@ import sim
 import os
 import numpy as np
 
-def CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty, ElecSys=None, RgConstrain=False,RgTars=[1.],measureRgs=None,recalc=False, LagMultList=np.zeros(500)):
+def CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty, ElecSys=None, RgConstrain=False,RgTars=[1.],measureRgs=None,recalc=False, LagMultList=np.zeros(500), ConstrainMode=0):
     # Perform atom mapping for specific system
     Map = sim.atommap.PosMap()
     print(Sys.Name)
@@ -35,10 +35,11 @@ def CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsPro
     Sys.ScaleBox(Sys.BoxL) # scale the system by the box
     try:
         Opt = OptClass(Sys, Map, Beta = 1./Sys.TempSet, Traj = CGtraj, FilePrefix = '{}'.format(Sys.Name), ElecSys = ElecSys,
-                        SaveLoadArgData = True, TempFileDir = os.getcwd(), UseTarHists=False)                        
+                        SaveLoadArgData = True, TempFileDir = os.getcwd(), UseTarHists=False)
     except:
         Opt = OptClass(Sys, Map, Beta = 1./Sys.TempSet, Traj = CGtraj, FilePrefix = '{}'.format(Sys.Name), ElecSys = ElecSys,
                         LoadArgData = True, TempFileDir = os.getcwd(), UseTarHists=False)
+    Opt.ConstrainMode = ConstrainMode
     Opt.ConstrainNeutralCharge()
     # Set run times for optimization objects.
     # Useful for dilute systems versus concentration systems.    
