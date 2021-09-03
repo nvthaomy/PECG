@@ -43,10 +43,11 @@ for line in lines:
     if not line.startswith('#'):
         key = line.split()[chainName_col] 
         val = line.split()[seq_col]
-        tmp_struc = []
-        for l in val:
-            tmp_struc.append(atomMap[l])
-        chargeLib.update({key: tmp_struc})
+        if key in pdbs:
+            tmp_struc = []
+            for l in val:
+                tmp_struc.append(atomMap[l])
+            chargeLib.update({key: tmp_struc})
 
 # make structure libraries for sim
 for i,pdb in enumerate(pdbs):
