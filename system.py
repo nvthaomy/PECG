@@ -9,7 +9,7 @@ import sim
 import forcefield
 def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams, ForceFieldFile,
                               NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, 
-                              Units = sim.units.AtomicUnits,RgConstrain=False, MolIdRgs=[],IsFixedExtPot = {"UConst": True, "NPeriods":True}, StepsStride=1):
+                              Units = sim.units.AtomicUnits,RgConstrain=False, MolIdRgs=[],IsFixedExtPot = {"UConst": True, "NPeriods":True}, StepsStride=1, RandomMul=0):
 
     print("\nCreate system {}".format(SysName))
     AtomTypes = {}
@@ -102,7 +102,7 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
 
 
     #initial positions and velocities
-    sim.system.positions.CubicLattice(Sys)
+    sim.system.positions.CubicLattice(Sys, Random = RandomMul)
     sim.system.velocities.Canonical(Sys, Temp = Temp)
     Sys.TempSet = Temp
     Sys.PresSet = Pres
