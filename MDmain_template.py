@@ -92,6 +92,7 @@ StepsProd = __tau__/dt
 StepsStride = __Stride__
 MDRestartFile = None #None: dont read restart file
 Checkpnt = None # checkpoint if use omm
+RandomMul = 100
 """FEP Params"""
 CalChemPot = False
 FEPDir = __FEPDir__
@@ -277,7 +278,13 @@ for i, MolTypesDict in enumerate(MolTypesDicts):
         StepScale = None
     #create system and add forcefield, then create optimizer for each system
     Sys,_  = system.CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams,ForceFieldFile,
-                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units)
+                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, Units = Units,
+                              RandomMul=RandomMul)
+
+    ParamString = Sys.ForceField.ParamString()
+    paramfile = open(SysName+'_ff.dat','w')
+    paramfile.write(ParamString)
+    paramfile.close()
 
     Systems.append(Sys)
     NAtoms.append(Sys.NAtom)
