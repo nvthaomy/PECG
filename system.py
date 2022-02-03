@@ -6,10 +6,11 @@ Created on Fri Dec 13 10:25:20 2019
 @author: my
 """
 import sim
+import numpy as np
 import forcefield
 def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams, ForceFieldFile,
                               NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, 
-                              Units = sim.units.AtomicUnits,RgConstrain=False, MolIdRgs=[],IsFixedExtPot = {"UConst": True, "NPeriods":True}, StepsStride=1, RandomMul=0):
+                              Units = sim.units.AtomicUnits,RgConstrain=False, MolIdRgs=[],IsFixedExtPot = {"UConst": True, "NPeriods":True}, StepsStride=1, RandomMul=0, RLength_dict={}):
 
     print("\nCreate system {}".format(SysName))
     AtomTypes = {}
@@ -46,9 +47,18 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
     #create bonds between monomer pairs
     for i,MolType in enumerate(MolTypes):
         NMon = NMons[i]        
+        COMPos = [[0.,0.,0.]] # assume linear molecules
         for bond_index in range(0, NMon-1):
-            MolType.Bond(bond_index, bond_index+1)
-
+            if MolType.Name in RLength_dict.keys():
+                print('Add rigid bond ', RLength_dict[MolType.Name][bond_index])
+                MolType.Bond(bond_index, bond_index+1, RLength = RLength_dict[MolType.Name][bond_index])        
+                COMPos.append(np.array(COMPos[-1]) + np.array([RLength_dict[MolType.Name][bond_index], 0., 0.]))
+            else:
+                MolType.Bond(bond_index, bond_index+1)
+        if MolType.Name in RLength_dict.keys():
+            COMPos = np.array(COMPos)
+            MolType.COMPos = COMPos 
+            print('COM Pos of {}: '.format(MolType.Name),COMPos)
     # make system and add molecules in same sequence as MolNames 
     Sys = sim.system.System(World, Name = SysName)
     Sys.BoxL = BoxL
