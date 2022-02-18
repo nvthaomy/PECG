@@ -10,7 +10,7 @@ import numpy as np
 import forcefield
 def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams, ForceFieldFile,
                               NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, 
-                              Units = sim.units.AtomicUnits,RgConstrain=False, MolIdRgs=[],IsFixedExtPot = {"UConst": True, "NPeriods":True}, StepsStride=1, RandomMul=0, RLength_dict={}):
+                              Units = sim.units.AtomicUnits,RgConstrain=False, MolIdRgs=[],IsFixedExtPot = {"UConst": True, "NPeriods":True}, StepsStride=1, RandomMul=0, RLength_dict={}, elements={}):
 
     print("\nCreate system {}".format(SysName))
     AtomTypes = {}
@@ -21,7 +21,11 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
         Charge = charges[AtomName]
         if Charge != 0:
             IsCharged = True
-        AtomType = sim.chem.AtomType(AtomName, Mass = 1., Charge = Charge)
+        if AtomName in elements.keys():
+            Element = elements[AtomName]
+        else:
+            Element = None
+        AtomType = sim.chem.AtomType(AtomName, Mass = 1., Charge = Charge, Element=Element)
         AtomTypes.update({AtomName:AtomType})
     
     #make dictionary to keep track of index use to set NMol
