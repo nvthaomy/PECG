@@ -36,10 +36,13 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
     #Bond    
     for (atom1name,atom2name), params in sorted(BondParams.items()):
         print('Adding {}'.format(params[2]))
-        atom1 = AtomTypes[atom1name]
-        atom2 = AtomTypes[atom2name]
-        fixed = IsFixedBond[(atom1name,atom2name)]
-        Filter = sim.atomselect.PolyFilter(Filters = [atom1, atom2], Bonded = True)
+        if not atom1name == 'All' and not atom2name == 'All':
+            atom1 = AtomTypes[atom1name]
+            atom2 = AtomTypes[atom2name]
+            Filter = sim.atomselect.PolyFilter(Filters = [atom1, atom2], Bonded = True)
+        else:
+            Filter = sim.atomselect.BondPairs
+        fixed = IsFixedBond[(atom1name,atom2name)]  
         P = sim.potential.Bond(Sys, Filter = Filter, Dist0 = params[0], FConst = params[1], Label = params[2])
         #fixing params
         P.Param.Dist0.Fixed = fixed[0]
@@ -59,11 +62,34 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
     elif UseLJGauss:
         #Gaussian Pair
         for (atom1name,atom2name), params in sorted(LJGaussParams.items()):
-            print('Adding {}\nCutoff {}'.format(params[6],params[3]))
-            atom1 = AtomTypes[atom1name]
-            atom2 = AtomTypes[atom2name]
+            print('Adding {}\nCutoff {}'.format(params[-1],params[3]))
+            if 'MOL_' in atom1name:
+                MolType = [x for x in Sys.World if x.Name == ''.join(atom1name.split('MOL_'))][0]
+                atom1 = sim.atomselect.Filter(MolTypes = MolType)
+            elif 'ELE_' in atom1name:
+                atom1 = sim.atomselect.Filter(Element = ''.join(atom1name.split('ELE_')))
+            else:
+                try:
+                    atom1 = AtomTypes[atom1name]
+                except:
+                    atom1 = [AtomTypes[x] for x in atom1name]
+            
+            if 'MOL_' in atom2name:
+                MolType = [x for x in Sys.World if x.Name == ''.join(atom2name.split('MOL_'))][0]
+                atom2 = sim.atomselect.Filter(MolTypes = MolType)
+            elif 'ELE_' in atom2name:
+                atom2 = sim.atomselect.Filter(Element = ''.join(atom2name.split('ELE_')))
+            else:
+                try:
+                    atom2 = AtomTypes[atom2name]
+                except:
+                    atom2 = [AtomTypes[x] for x in atom2name]
+
             fixed = IsFixedLJGauss[(atom1name,atom2name)]
+            print('atom 1: {}'.format(atom1))
+            print('atom 2: {}'.format(atom2))
             Filter = sim.atomselect.PolyFilter(Filters = [atom1, atom2])
+            print('Fileter ', Filter)
             if ('All','All') in NGaussDicts.keys():
                 NGauss = NGaussDicts[('All','All')]
             else:
@@ -73,7 +99,7 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
                     NGauss = NGaussDicts[(atom2name,atom1name)]
             #adding multiple Gaussians
             for i in range(NGauss): 
-                Label = params[6] + '{}'.format(i)
+                Label = params[-1] + '{}'.format(i)
                 P = sim.potential.LJGaussian(Sys, Filter = Filter, B = params[0], Kappa = params[1],
                              Dist0 = params[2], Cut = params[3], Sigma = params[4], Epsilon = params[5], 
                              Label = Label)
