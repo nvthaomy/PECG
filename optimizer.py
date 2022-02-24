@@ -95,7 +95,10 @@ def RunOpt(Opts, Weights, Prefix, UseWPenalty, MaxIter, SteepestIter, RgConstrai
     if not UseWPenalty and not RgConstrain:
         Optimizer.RunConjugateGradient(MaxIter=MaxIter, SteepestIter=SteepestIter)
     else:
-        Optimizer.RunStages(StageCoefs = StageCoefs, UpdateMode = UpdateMode) #, NMaxStage = NMaxStage)
+        try:
+            Optimizer.RunStages(StageCoefs = StageCoefs, UpdateMode = UpdateMode) #, NMaxStage = NMaxStage)
+        except:
+            Optimizer.RunStages(StageCoefs = StageCoefs)
 def recalc(Opts,Prefix):
     import time
     StartTime = time.time()

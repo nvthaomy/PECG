@@ -110,7 +110,10 @@ def GetRgRee(trajFile, top, DOP, NP, NAtomsPerChain = None,
                         "sodium": "na+"}
 
     traj = md.load(trajFile, top=top, stride = stride)
-    traj.make_molecules_whole(inplace=True, sorted_bonds=None) # Automatically finds the bonds from the topology file
+    try:
+        traj.make_molecules_whole(inplace=True, sorted_bonds=None) # Automatically finds the bonds from the topology file
+    except:
+        pass
     if fi == 'lammps' and unit == 'nonDim':
         traj.xyz *= 10.
         traj.unitcell_lengths *= 10

@@ -20,11 +20,11 @@ python z_recalc.py nacl_ff.dat recalc_relax
     --> and a modified "main.py" (here named "z_recalc.py") to use the modified optimizer
 2) Recalculate DDSrel of the current system
 
-   python main_recalc.py nacl_ff.dat: with with IsFixedExtPot =  {"UConst": False, "NPeriods":True}
+   python main_recalc.py nacl_ff.dat: with IsFixedExtPot =  {"UConst": False, "NPeriods":True}, set fixPair to be the same as original Srel
 
 3) Recalculate DDSrel of the system with a relaxed external potential
 
-   python main_recalc.py nacl_ff.dat: with with IsFixedExtPot =  {"UConst": False, "NPeriods":True}
+   python main_recalc.py nacl_ff.dat:  with IsFixedExtPot =  {"UConst": False, "NPeriods":True}, set fixPair to be the same as original Srel
 
 4) Run the d2Sth.py script
     --> output is in d2S_th.txt (is a matrix)
