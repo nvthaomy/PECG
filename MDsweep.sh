@@ -1,44 +1,32 @@
-#!/bin/bash
-# ask for 16 cores on two nodes
-#SBATCH --nodes=1 --ntasks-per-node=6
-#SBATCH --time=700:00:00
-#SBATCH --job-name=2Mnacl_opc_Uext2_NaCl_298K_NVT_fixUwater
-#SBATCH --mail-type=FAIL
-#SBATCH --mail-type=END
-#SBATCH --mail-user=my@ucsb.edu
-
 module load intel/18
 export PATH=/home/mnguyen/lammps-7Aug19/bin/:$PATH
 export PATH="/home/mnguyen/miniconda3/envs/py2/bin/:$PATH"
-export PYTHONPATH=/home/mnguyen/bin/sim_git:$PYTHONPATH
+export PYTHONPATH=/home/mnguyen/bin/sim_nsherck:$PYTHONPATH
 
-ext=xp0.1_10AA24f1_10AH24f1_325nacl_12500hoh_1_2_1
-Name="'PE'"
-ff=PE_ff.dat
+dirPrefix=(4IDP-2Yx2A 4IDP-2Yx2A)
+dirExt=(0M 0M)
+Name="'poly'"
+ff=poly_ff.dat
 
-dirNameA=('11wtpercentPE_0.3MNaCl_10AA24f1_10AH24f1_325nacl_12500hoh_elong')
-nPAAs=(10)
-nPAHs=(10)
-nNaA=(325)
-nClA=(325)
-nHOHA=(12500)
-#volA=(14200.)
-MolNamesList=["'PAA','PAH', 'Na+', 'Cl-','HOH'"]
-
-PAAstructureA=(["'A-'"]*24)
-PAHstructureA=(["'B+'"]*24)
+MolNamesList=["'Pol','HOH'"] 
+nPols=(10 5)
+nNaA=(0 0)
+nClA=(0 0)
+nHOHA=(25000 25000)
+PolstructureA=("['Z', 'Z', 'Z', 'Z-', 'Z', 'Z+'] * 4 + ['X'] * 20" "['Z', 'Z', 'Z', 'Z-', 'Z', 'Z+'] * 4 + ['X'] * 20")
 
 #MD
-Lxs=(18.)
-Lys=(18.)
-Lzs=(45.)
-dt=0.05 #0.1
+InitPDB=None
+Lxs=(35. 35)
+Lys=(35. 35)
+Lzs=(35. 35)
+dt=0.1 #0.1
 P=8.520
 PresAx=None #0 1 2
-tau=100000.
+tau=200000.
 equilTau=500.
-Stride=500
-cut=8.5
+Stride=1000
+cut=8.
 UseOMM=True
 UseLammps=False
 UseSim=False
@@ -60,44 +48,39 @@ FEPDir="'${nInsert}insert_NaCl'"
 
 # get the length of the arrays
 #length=${#nNaA[@]}
-length=${#nPAAs[@]}
+length=${#nPols[@]}
 
 #echo $length 'concentration values'
 
 # do the loop
 for ((i=0;i<$length;i++)); do
-    nPAA=${nPAAs[$i]}
-    nPAH=${nPAHs[$i]}
+    nPol=${nPols[$i]}
     nNa=${nNaA[$i]}
     nCl=${nClA[$i]}
     nHOH=${nHOHA[$i]}
     Lx=${Lxs[$i]}
     Ly=${Lys[$i]}
     Lz=${Lzs[$i]}
-    PAAstructure=${PAAstructureA[$i]}
-    PAHstructure=${PAHstructureA[$i]}
+    Polstructure=${PolstructureA[$i]}
+    mydir=${dirPrefix[$i]}_${nPol}IDP_${nNa}NaCl_${nHOH}HOH_${dirExt[$i]}
 
-    mydir=${dirNameA[$i]}
-#    mydir=${nNa}Na_${nCl}Cl_${nHOH}HOH
     mkdir $mydir
     cp $ff $mydir/.
-    cp MDmain_template_elong.py $mydir/MDmain.py
+    cp MDmain_template.py $mydir/MDmain.py
     cp pod_template.sh $mydir/pod.sh
     echo === ${mydir} ===
     sed -i "s/__Name__/${Name}/g" $mydir/MDmain.py
     sed -i "s/__nNa__/${nNa}/g" $mydir/MDmain.py 
     sed -i "s/__nCl__/${nCl}/g" $mydir/MDmain.py
     sed -i "s/__nHOH__/${nHOH}/g" $mydir/MDmain.py
-    sed -i "s/__nPAA__/${nPAA}/g" $mydir/MDmain.py
-    sed -i "s/__nPAH__/${nPAH}/g" $mydir/MDmain.py
-    sed -i "s/__PAAstructure__/${PAAstructure}/g" $mydir/MDmain.py
-    sed -i "s/__PAHstructure__/${PAHstructure}/g" $mydir/MDmain.py
+    sed -i "s/__nPol__/${nPol}/g" $mydir/MDmain.py
+    sed -i "s/__Polstructure__/${Polstructure}/g" $mydir/MDmain.py
     sed -i "s/__MolNamesList__/${MolNamesList}/g" $mydir/MDmain.py
 
     sed -i "s/__Lx__/${Lx}/g" $mydir/MDmain.py
     sed -i "s/__Ly__/${Ly}/g" $mydir/MDmain.py
     sed -i "s/__Lz__/${Lz}/g" $mydir/MDmain.py
-#    sed -i "s/__vol__/${vol}/g" $mydir/MDmain.py
+    sed -i "s/__InitPDB__/${InitPDB}/g" $mydir/MDmain.py
     sed -i "s/__dt__/${dt}/g" $mydir/MDmain.py     
     sed -i "s/__P__/${P}/g" $mydir/MDmain.py
     sed -i "s/__PresAx__/${PresAx}/g" $mydir/MDmain.py
@@ -120,11 +103,9 @@ for ((i=0;i<$length;i++)); do
     sed -i "s/__OMP_NumThread__/${OMP_NumThread}/g" $mydir/pod.sh
     sed -i "s/__jobName__/${ext}${mydir}/g" $mydir/pod.sh
     sed -i "s/__pyName__/MDmain.py/g" $mydir/pod.sh    
-#    sed -i "s/__top__/${top}/g" $mydir/pod.sh
-#    sed -i "s/__traj__/${traj}/g" $mydir/pod.sh
-#    sed -i "s/__scale__/${scale}/g" $mydir/pod.sh
     cd $mydir
 #    qsub pod.sh
     python MDmain.py
+    python ~/bin/scripts/mdtrajConvert.py ${Name}0_traj.dcd ${Name}0_equilibrated.pdb xyz -s 20
     cd ..
 done

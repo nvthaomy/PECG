@@ -10,7 +10,7 @@ import numpy as np
 import forcefield
 def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams, ForceFieldFile,
                               NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, 
-                              Units = sim.units.AtomicUnits,RgConstrain=False, MolIdRgs=[],IsFixedExtPot = {"UConst": True, "NPeriods":True}, StepsStride=1, RandomMul=0, RLength_dict={}, elements={}):
+                              Units = sim.units.AtomicUnits,RgConstrain=False, MolIdRgs=[],IsFixedExtPot = {"UConst": True, "NPeriods":True}, StepsStride=1, RandomMul=0, RLength_dict={}, elements={}, nMonomers=0, L=[1.,1.,1.], a=0.31, polyL=None):
 
     print("\nCreate system {}".format(SysName))
     AtomTypes = {}
@@ -116,7 +116,22 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
 
 
     #initial positions and velocities
-    sim.system.positions.CubicLattice(Sys, Random = RandomMul)
+    if not nMonomers:
+        sim.system.positions.CubicLattice(Sys, Random = RandomMul)
+    else:
+        # center monomers at the center of an elongated box, assume elongated in the z direction
+        import numpy as np
+        Lz = L[2]
+        Lx = L[0]
+        Ly = L[1]
+        if not polyL:
+            polyRho = 11.5 #nm-3
+            polyV = float(nMonomers)/polyRho/a**3 # minimum volume to pack polymers, convert to dimensionless units
+            polyL = polyV/Lx/Ly * 1.5 # multiply by 1.5 to avoid overlap
+        polyPos = np.random.rand(nMonomers,3) * np.array([Lx,Ly,polyL]) + np.array([0.,0.,Lz/2. - 0.5*polyL])
+        Sys.Pos = np.random.rand(Sys.NAtom,3) * np.array([Lx,Ly,Lz])
+        Sys.Pos[:nMonomers,:] = polyPos
+
     sim.system.velocities.Canonical(Sys, Temp = Temp)
     Sys.TempSet = Temp
     Sys.PresSet = Pres

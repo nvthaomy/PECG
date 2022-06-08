@@ -42,9 +42,11 @@ else:
 # energy: kT
 # pressure: kT/a_water**3
 """TOPOLOGY"""
-nameMap = {'Na+':'Na+', 'Cl-':'Cl-', 'HOH': 'HOH', 'WAT': 'HOH',
-               'ATP':'A', 'AHP':'A', 'AP': 'A', 'ATD': 'A-', 'AHD': 'A-', 'AD': 'A-',
-               'NTP':'B+', 'NHP':'B+', 'NP': 'B+', 'NTD': 'B', 'NHD': 'B', 'ND': 'B'}
+UseLJGauss_MolType = False
+UseLJGauss_CustomBead = False
+# define bead type for LJGauss
+if UseLJGauss_CustomBead:
+    ff_bead_map = {'Head': ['Z','Z+','Z-'], 'Tail': ['X'], 'HOH': ['HOH']}
 #dimensionless (average volume from NPT)
 BoxLs = [[__Lx__,__Ly__,__Lz__]]
 
@@ -92,6 +94,7 @@ StepsProd = __tau__/dt
 StepsStride = __Stride__
 MDRestartFile = None #None: dont read restart file
 Checkpnt = None # checkpoint if use omm
+InitPos = __InitPDB__
 RandomMul = 100
 """FEP Params"""
 CalChemPot = False
@@ -201,25 +204,72 @@ ks = {}
 LJGaussParams = {}
 IsFixedLJGauss = {}
 if UseLJGauss:
-    #LJGauss param: (atom1,atom2):[B, kappa, Dist0, Cut, Sigma, Epsilon, Label ]
-    for i in range(len(UniqueCGatomTypes)):
-        for j in range(len(UniqueCGatomTypes)):
-            atom1 = UniqueCGatomTypes[i]
-            atom2 = UniqueCGatomTypes[j]
-            a1 = aevs_self[atom1]
-            a2 = aevs_self[atom2]
-            a12 =  np.sqrt((a1**2 + a2**2)/2)
-            kappa = 1/(2*(a1**2 + a2**2))
-            aevs.update({(atom1,atom2): a12})
-            ks.update({(atom1,atom2): kappa})
-            #add param if this pair has not been added to param dictionary
-            if not (atom1,atom2) in LJGaussParams.keys() and not (atom2,atom1) in LJGaussParams.keys():
-                if (atom1,atom2) == ('HOH','HOH'):
-                    LJGaussParams.update({(atom1,atom2): [BHOH_HOH, kappa, LJGDist0, Cut, LJGSigma, LJGEpsilon, 'LJGauss{}_{}'.format(atom1,atom2)]})
-                    IsFixedLJGauss.update({(atom1,atom2): [True, True, FixedDist0, FixedSigma, FixedEpsilon, True]})
+    #LJGauss param: (atom1,atom2):[B, kappa, Dist0, Cut, Sigma, Epsilon, Label ]          
+    if UseLJGauss_MolType:   #make pairs based on MolType, all beads on same MolType are treated the same
+        for mol1 in MolNamesList[0]:                                                      
+            for mol2 in MolNamesList[0]:                                                  
+                atom1 = MolTypesDicts[0][mol1][0] # pick first atom in this molecule to use for smearing length calculation 
+                atom2 = MolTypesDicts[0][mol2][0]
+                a1 = aevs_self[atom1]
+                a2 = aevs_self[atom2]
+                a12 =  np.sqrt((a1**2 + a2**2)/2)                                         
+                kappa = 1/(2*(a1**2 + a2**2))                                             
+                aevs.update({(atom1,atom2): a12})
+                ks.update({(atom1,atom2): kappa})                                         
+                pair = ('MOL_{}'.format(mol1), 'MOL_{}'.format(mol2))
+                if not pair in  LJGaussParams.keys() and not (pair[1],pair[0]) in LJGaussParams.keys():    
+                    if pair == ('MOL_HOH','MOL_HOH'):
+                        print('fix params of pair {}'.format(pair))                       
+                        LJGaussParams.update({pair: [BHOH_HOH, kappa, LJGDist0, Cut, LJGSigma, LJGEpsilon, 'LJGauss{}_{}'.format(mol1,mol2)]})                                       
+                        IsFixedLJGauss.update({pair: [True, True, FixedDist0, FixedSigma, FixedEpsilon, True]})
+                    else:
+                        LJGaussParams.update({pair: [B0, kappa, LJGDist0, Cut, LJGSigma, LJGEpsilon, 'LJGauss{}_{}'.format(mol1,mol2)]})
+                        IsFixedLJGauss.update({pair: [FixedB, FixedKappa, FixedDist0, FixedSigma, FixedEpsilon, True]})
+    elif UseLJGauss_CustomBead:
+        LJGauss_groups = [x for x in ff_bead_map.keys()]
+        for i in range(len(LJGauss_groups)):
+            for j in range(len(LJGauss_groups)):
+                group1 = LJGauss_groups[i]
+                group2 = LJGauss_groups[j]
+                atoms1 = tuple(ff_bead_map[group1])
+                atoms2 = tuple(ff_bead_map[group2])
+                # take average radius if atomsi include many bead types
+                a1 = np.mean([aevs_self[atom1] for atom1 in atoms1])
+                a2 = np.mean([aevs_self[atom2] for atom2 in atoms2])
+                a12 =  np.sqrt((a1**2 + a2**2)/2)
+                kappa = 1/(2*(a1**2 + a2**2))
+                aevs.update({(group1,group2): a12})
+                ks.update({(group1,group2): kappa})
+                #add param if this pair has not been added to param dictionary
+                pot_name = 'LJGauss{}_{}'.format(group1,group2)
+                if (atoms1,atoms2) in LJGaussParams.keys() or (atoms2,atoms1) in LJGaussParams.keys(): continue
+                if (group1,group2) == ('HOH','HOH'):
+                    print('fix params of pair {}'.format((group1,group2)))
+                    LJGaussParams.update({(atoms1,atoms2): [BHOH_HOH, kappa, LJGDist0, Cut, LJGSigma, LJGEpsilon, pot_name]})
+                    IsFixedLJGauss.update({(atoms1,atoms2): [True, True, FixedDist0, FixedSigma, FixedEpsilon, True]})
                 else:
-                    LJGaussParams.update({(atom1,atom2): [B0, kappa, LJGDist0, Cut, LJGSigma, LJGEpsilon, 'LJGauss{}_{}'.format(atom1,atom2)]})
-                    IsFixedLJGauss.update({(atom1,atom2): [FixedB, FixedKappa, FixedDist0, FixedSigma, FixedEpsilon, True]})
+                    LJGaussParams.update({(atoms1,atoms2): [B0, kappa, LJGDist0, Cut, LJGSigma, LJGEpsilon, pot_name]})
+                    IsFixedLJGauss.update({(atoms1,atoms2): [FixedB, FixedKappa, FixedDist0, FixedSigma, FixedEpsilon, True]})
+    else: # make pairs based on AtomType
+        for i in range(len(UniqueCGatomTypes)):
+            for j in range(len(UniqueCGatomTypes)):
+                atom1 = UniqueCGatomTypes[i]
+                atom2 = UniqueCGatomTypes[j]
+                a1 = aevs_self[atom1]
+                a2 = aevs_self[atom2]
+                a12 =  np.sqrt((a1**2 + a2**2)/2)
+                kappa = 1/(2*(a1**2 + a2**2))
+                aevs.update({(atom1,atom2): a12})
+                ks.update({(atom1,atom2): kappa})
+                #add param if this pair has not been added to param dictionary
+                if not (atom1,atom2) in LJGaussParams.keys() and not (atom2,atom1) in LJGaussParams.keys():
+                    if (atom1,atom2) == ('HOH','HOH'):
+                        print('fix params of pair {}'.format((atom1,atom2)))
+                        LJGaussParams.update({(atom1,atom2): [BHOH_HOH, kappa, LJGDist0, Cut, LJGSigma, LJGEpsilon, 'LJGauss{}_{}'.format(atom1,atom2)]})
+                        IsFixedLJGauss.update({(atom1,atom2): [True, True, FixedDist0, FixedSigma, FixedEpsilon, True]})
+                    else:
+                        LJGaussParams.update({(atom1,atom2): [B0, kappa, LJGDist0, Cut, LJGSigma, LJGEpsilon, 'LJGauss{}_{}'.format(atom1,atom2)]})
+                        IsFixedLJGauss.update({(atom1,atom2): [FixedB, FixedKappa, FixedDist0, FixedSigma, FixedEpsilon, True]})
     f = open('aevs.txt','w')
     f.write('{}'.format(aevs))
     f.close()
@@ -351,7 +401,7 @@ for i, Sys in enumerate(Systems):
         if RunMD:
             ret = sim.export.omm.MakeOpenMMTraj(Sys, DelTempFiles = False, Prefix = Sys.Name+'_', TrajFile = 'traj.dcd', Checkpnt = Checkpnt,
                                                        Verbose = True, NStepsMin = StepsMin, NStepsEquil = scaledStepsEquil, NStepsProd = scaledStepsProd,
-                                                       WriteFreq = StepsStride)
+                                                       WriteFreq = StepsStride, InitPos = InitPos)
 
             """Analyze"""
             analysis.GetStats(TrajFile, top, NP, ThermoLog, DOP = DOP, NAtomsPerChain = NAtomsPerChain, StatsFName = 'AllStats.dat',
