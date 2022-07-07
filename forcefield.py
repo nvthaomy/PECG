@@ -130,7 +130,6 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
     
         #Smeared Coulomb
         for (atom1name,atom2name), params in sorted(SmearedCoulParams.items()):
-            if atom1name in ['W-','W+'] and atom2name in ['W-','W+']: continue
             print('Adding {}'.format(params[5]))
             atom1 = AtomTypes[atom1name]
             atom2 = AtomTypes[atom2name]
