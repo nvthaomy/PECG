@@ -89,7 +89,7 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
             print('atom 1: {}'.format(atom1))
             print('atom 2: {}'.format(atom2))
             Filter = sim.atomselect.PolyFilter(Filters = [atom1, atom2])
-            print('Fileter ', Filter)
+            print('Filter ', Filter)
             if ('All','All') in NGaussDicts.keys():
                 NGauss = NGaussDicts[('All','All')]
             else:
@@ -107,8 +107,8 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
                 #set bound of B, repulsive if i is even, attractive if i is odd
                 if i%2 == 0:
                     P.Param.B.Min = 0.
-                    if  params[0] < 0.:
-                        P.Param.B = -params[0]
+                    #if  params[0] < 0.:
+                    #    P.Param.B = -params[0]
                 else:
                     P.Param.B.Max = 0.
                     if params[0] > 0.:
@@ -130,7 +130,6 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
     
         #Smeared Coulomb
         for (atom1name,atom2name), params in sorted(SmearedCoulParams.items()):
-            if atom1name in ['W-','W+'] and atom2name in ['W-','W+']: continue
             print('Adding {}'.format(params[5]))
             atom1 = AtomTypes[atom1name]
             atom2 = AtomTypes[atom2name]
