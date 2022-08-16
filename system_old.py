@@ -8,28 +8,45 @@ Created on Fri Dec 13 10:25:20 2019
 import sim
 import numpy as np
 import forcefield
-def CreateWorld(UniqueCGatomTypes, UniqueMolTypes, charges, elements, RLength_dict={}, Units=sim.units.DimensionlessUnits):
+def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMolsDict, charges, IsFixedCharge, Temp, Pres, IntParams, ForceFieldFile,
+                              NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, 
+                              Units = sim.units.AtomicUnits,RgConstrain=False, MolIdRgs=[],IsFixedExtPot = {"UConst": True, "NPeriods":True}, StepsStride=1, RandomMul=0, RLength_dict={}, elements={}, nMonomers=0, L=[1.,1.,1.], a=0.31, polyL=None):
+
+    print("\nCreate system {}".format(SysName))
     AtomTypes = {}
     MolTypes = []
     NMons = []
+    IsCharged = False
     for AtomName in UniqueCGatomTypes:
         Charge = charges[AtomName]
+        if Charge != 0:
+            IsCharged = True
         if AtomName in elements.keys():
             Element = elements[AtomName]
         else:
             Element = None
         AtomType = sim.chem.AtomType(AtomName, Mass = 1., Charge = Charge, Element=Element)
         AtomTypes.update({AtomName:AtomType})
-
-    # add MolType to World
-    for MolName in UniqueMolTypes.keys():  
-        AtomsInMol = []
-        AtomNames = UniqueMolTypes[MolName]
-        NMons.append(len(AtomNames))
-        for AtomName in AtomNames:
-            AtomsInMol.append(AtomTypes[AtomName])
-        MolType = sim.chem.MolType(MolName, AtomsInMol)
-        MolTypes.append(MolType)
+    
+    #make dictionary to keep track of index use to set NMol
+    nextNMolId = {}
+    for MolName in MolNames:
+        if not MolName in nextNMolId.keys():
+            nextNMolId.update({MolName: 0})
+    #need to create MolType in a right sequence to the trajectory
+    for MolName in MolNames:  
+        if (NMolsDict[MolName] > 0 and not isinstance(NMolsDict[MolName],list)) or (isinstance(NMolsDict[MolName],list)): 
+            if isinstance(NMolsDict[MolName],list) and (not any(NMolsDict[MolName])or len(NMolsDict[MolName])==0):
+                Exception('Does not handle value of 0 if NMol is list. If is empty list, set to 0')
+            AtomsInMol = []
+            AtomNames = MolTypesDict[MolName]
+            NMons.append(len(AtomNames))
+            for AtomName in AtomNames:
+                AtomsInMol.append(AtomTypes[AtomName])
+            MolType = sim.chem.MolType(MolName, AtomsInMol)
+            MolTypes.append(MolType)
+    print('MolTypes {}'.format(MolTypes)) 
+    World = sim.chem.World(MolTypes, Dim = 3, Units = Units)
 
     #create bonds between monomer pairs
     for i,MolType in enumerate(MolTypes):
@@ -46,37 +63,21 @@ def CreateWorld(UniqueCGatomTypes, UniqueMolTypes, charges, elements, RLength_di
             COMPos = np.array(COMPos)
             MolType.COMPos = COMPos 
             print('COM Pos of {}: '.format(MolType.Name),COMPos)
-    World = sim.chem.World(MolTypes, Dim = 3, Units = Units)
-    return World
-
-def CreateSystem(SysName, World, BoxL, MolNames, NMolsDict,  IsFixedCharge, Temp, Pres, IntParams, ForceFieldFile,
-                NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams, BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, 
-                RgConstrain=False, MolIdRgs=[],IsFixedExtPot = {"UConst": True, "NPeriods":True}, StepsStride=1, RandomMul=0,
-                nMonomers=0, L=[1.,1.,1.], a=0.31, polyL=None):
-
-    print("\nCreate system {}".format(SysName))
-    IsCharged = False
-    AtomTypes = {}
-    for MolType in World: 
-        for AtomType in MolType:
-            if not AtomType.Name in AtomTypes:
-                AtomTypes.update({AtomType.Name: AtomType})
-            if AtomType.Charge != 0:
-                IsCharged = True               
-    print('System is charged: {}'.format(IsCharged))
     # make system and add molecules in same sequence as MolNames 
     Sys = sim.system.System(World, Name = SysName)
     Sys.BoxL = BoxL
-    for i, MolName in enumerate(MolNames):
-        for MolType in World: 
-            if MolName == MolType.Name:
-                NMol = NMolsDict[MolType.Name]
-                print("Adding {} {} molecules to system".format(NMol, MolType.Name))
-                for j in range(NMol):
-                    Sys += MolType.New()
+    for i, MolType in enumerate(MolTypes): 
+        NMol = NMolsDict[MolType.Name]
+        if isinstance(NMol,list):
+            NMol = NMol[nextNMolId[MolType.Name]]
+            nextNMolId[MolType.Name] += 1
+        print("Adding {} {} molecules to system".format(NMol, MolType.Name))
+        for j in range(NMol):
+            Sys += MolType.New()
     Sys.ForceField.Globals.Charge.Fixed = IsFixedCharge
     
     # add forcefield 
+    
     ForceField = forcefield.CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFixedLJGauss, SmearedCoulParams, EwaldParams,
                               BondParams, IsFixedBond, PSplineParams, UseLJGauss, ExtPot, IsFixedExtPot)
                                 

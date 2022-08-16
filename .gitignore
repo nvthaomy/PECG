@@ -1,8 +1,6 @@
 *pyc
-<<<<<<< HEAD
-=======
 __pycache__/
->>>>>>> 60344db5ae89e7ac2f810b92b79658a761eadea7
+.swp
 testScaleBox/
 test_PAAf0.5_implicitSol/
 test_PAAf0.5_implicitSol_NPT/
