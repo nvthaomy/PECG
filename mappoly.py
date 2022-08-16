@@ -14,6 +14,9 @@ def getMap(traj, top, nameMap):
     AAres = []
     CGatomTypes = []
     for res in top.residues:
+        if nameMap[res.name] == 'skip': 
+            print('Skip mapping residue {}'.format(res.name))
+            continue
         AAres.append(res.name)
         CGatomTypes.append(nameMap[res.name])
         #get atom indices of all atoms in this residue
