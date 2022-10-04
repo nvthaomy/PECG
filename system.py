@@ -20,7 +20,7 @@ def CreateWorld(UniqueCGatomTypes, UniqueMolTypes, charges, elements, RLength_di
             Element = None
         AtomType = sim.chem.AtomType(AtomName, Mass = 1., Charge = Charge, Element=Element)
         AtomTypes.update({AtomName:AtomType})
-
+    print('AtomTypes in World: {}'.format(AtomTypes))
     # add MolType to World
     for MolName in UniqueMolTypes.keys():  
         AtomsInMol = []
@@ -30,7 +30,7 @@ def CreateWorld(UniqueCGatomTypes, UniqueMolTypes, charges, elements, RLength_di
             AtomsInMol.append(AtomTypes[AtomName])
         MolType = sim.chem.MolType(MolName, AtomsInMol)
         MolTypes.append(MolType)
-
+    print('MolTypes in World: {}'.format(MolTypes))
     #create bonds between monomer pairs
     for i,MolType in enumerate(MolTypes):
         NMon = NMons[i]        
@@ -58,11 +58,16 @@ def CreateSystem(SysName, World, BoxL, MolNames, NMolsDict,  IsFixedCharge, Temp
     IsCharged = False
     AtomTypes = {}
     for MolType in World: 
+        print('MolType: {}'.format(MolType))
         for AtomType in MolType:
-            if not AtomType.Name in AtomTypes:
-                AtomTypes.update({AtomType.Name: AtomType})
+            if not AtomType.Name in AtomTypes.keys():
+                AtomTypes.update({AtomType.Name: [AtomType]})
+            else: #add all unique AtomType of the same AtomType.Name (repeated due to sim create different AtomType for repeating bead on the same molecule
+                if not AtomType in AtomTypes[AtomType.Name]:
+                    AtomTypes[AtomType.Name].append(AtomType)
             if AtomType.Charge != 0:
                 IsCharged = True               
+    print('AtomTypes retrieved from World {}'.format(AtomTypes))
     print('System is charged: {}'.format(IsCharged))
     # make system and add molecules in same sequence as MolNames 
     Sys = sim.system.System(World, Name = SysName)
