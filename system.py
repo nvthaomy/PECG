@@ -59,10 +59,11 @@ def CreateSystem(SysName, World, BoxL, MolNames, NMolsDict,  IsFixedCharge, Temp
     AtomTypes = {}
     for MolType in World: 
         print('MolType: {}'.format(MolType))
-        for AtomType in MolType:
+        for SiteType in MolType:
+            AtomType = SiteType.AType   
             if not AtomType.Name in AtomTypes.keys():
                 AtomTypes.update({AtomType.Name: [AtomType]})
-            else: #add all unique AtomType of the same AtomType.Name (repeated due to sim create different AtomType for repeating bead on the same molecule
+            else: #as a sanity check add all unique AtomType (should only have one for each AtomType.Name) of the same AtomType.Name 
                 if not AtomType in AtomTypes[AtomType.Name]:
                     AtomTypes[AtomType.Name].append(AtomType)
             if AtomType.Charge != 0:
