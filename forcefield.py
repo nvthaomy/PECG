@@ -39,9 +39,21 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
         if not atom1name == 'All' and not atom2name == 'All':
             atom1 = AtomTypes[atom1name]
             atom2 = AtomTypes[atom2name]
+            try:
+                atom1 = AtomTypes[atom1name]
+            except:
+                atom1 = [AtomTypes[x] for x in atom1name]
+            try:
+                atom2 = AtomTypes[atom2name]
+            except:
+                atom2 = [AtomTypes[x] for x in atom2name]
+            #flatten list
+            atom1 = [item for sublist in atom1 for item in sublist]
+            atom2 = [item for sublist in atom2 for item in sublist]
             Filter = sim.atomselect.PolyFilter(Filters = [atom1, atom2], Bonded = True)
         else:
             Filter = sim.atomselect.BondPairs
+        print('Bond filter: {}'.format(Filter))
         fixed = IsFixedBond[(atom1name,atom2name)]  
         P = sim.potential.Bond(Sys, Filter = Filter, Dist0 = params[0], FConst = params[1], Label = params[2])
         #fixing params
@@ -84,6 +96,9 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
                     atom2 = AtomTypes[atom2name]
                 except:
                     atom2 = [AtomTypes[x] for x in atom2name]
+            #flatten list
+            atom1 = [item for sublist in atom1 for item in sublist] 
+            atom2 = [item for sublist in atom2 for item in sublist] 
 
             fixed = IsFixedLJGauss[(atom1name,atom2name)]
             print('atom 1: {}'.format(atom1))
