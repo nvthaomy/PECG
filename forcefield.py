@@ -47,9 +47,6 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
                 atom2 = AtomTypes[atom2name]
             except:
                 atom2 = [AtomTypes[x] for x in atom2name]
-            #flatten list
-            atom1 = [item for sublist in atom1 for item in sublist]
-            atom2 = [item for sublist in atom2 for item in sublist]
             Filter = sim.atomselect.PolyFilter(Filters = [atom1, atom2], Bonded = True)
         else:
             Filter = sim.atomselect.BondPairs
@@ -96,9 +93,6 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
                     atom2 = AtomTypes[atom2name]
                 except:
                     atom2 = [AtomTypes[x] for x in atom2name]
-            #flatten list
-            atom1 = [item for sublist in atom1 for item in sublist] 
-            atom2 = [item for sublist in atom2 for item in sublist] 
 
             fixed = IsFixedLJGauss[(atom1name,atom2name)]
             print('atom 1: {}'.format(atom1))
