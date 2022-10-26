@@ -9,7 +9,7 @@ import sim
 import os
 import numpy as np
 
-def CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty, ElecSys=None, RgConstrain=False,RgTars=[1.],measureRgs=None,recalc=False, LagMultList=[], ConstrainMode=0, StepsMin=2000, UpdateMode=0):
+def CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsProd, StepsStride, StepScale, UseWPenalty, ElecSys=None, RgConstrain=False,RgTars=[1.],measureRgs=None,recalc=False, LagMultList=[], ConstrainMode=0, StepsMin=2000, UpdateMode=0, MinReweightFrac=0.1):
     # Perform atom mapping for specific system
     Map = sim.atommap.PosMap()
     print(Sys.Name)
@@ -42,6 +42,7 @@ def CreateOptimizer(Sys, CGtraj, UseLammps, UseOMM, UseSim, StepsEquil, StepsPro
     Opt.ConstrainMode = ConstrainMode
     Opt.UpdateMode = UpdateMode
     Opt.ConstrainNeutralCharge()
+    Opt.MinReweightFrac = MinReweightFrac
     # Set run times for optimization objects.
     # Useful for dilute systems versus concentration systems.    
     if StepScale:
