@@ -62,10 +62,7 @@ def CreateSystem(SysName, World, BoxL, MolNames, NMolsDict,  IsFixedCharge, Temp
         for SiteType in MolType:
             AtomType = SiteType.AType   
             if not AtomType.Name in AtomTypes.keys():
-                AtomTypes.update({AtomType.Name: [AtomType]})
-            else: #as a sanity check add all unique AtomType (should only have one for each AtomType.Name) of the same AtomType.Name 
-                if not AtomType in AtomTypes[AtomType.Name]:
-                    AtomTypes[AtomType.Name].append(AtomType)
+                AtomTypes.update({AtomType.Name: AtomType})
             if AtomType.Charge != 0:
                 IsCharged = True               
     print('AtomTypes retrieved from World {}'.format(AtomTypes))
