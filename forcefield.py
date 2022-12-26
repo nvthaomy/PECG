@@ -109,9 +109,8 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
             #adding multiple Gaussians
             for i in range(NGauss): 
                 Label = params[-1] + '{}'.format(i)
-                P = sim.potential.LJGaussian(Sys, Filter = Filter, B = params[0], Kappa = params[1],
-                             Dist0 = params[2], Cut = params[3], Sigma = params[4], Epsilon = params[5], 
-                             Label = Label)
+                P = sim.potential.Gaussian0(Sys, Filter = Filter, B = params[0], Kappa = params[1],
+                             Cut = params[3], Label = Label)
                 P.Param.B.Fixed = fixed[0]
                 #set bound of B, repulsive if i is even, attractive if i is odd
                 if i%2 == 0:
@@ -123,9 +122,6 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
                     if params[0] > 0.:
                         P.Param.B = -params[0]
                 P.Param.Kappa.Fixed = fixed[1]
-                P.Param.Dist0.Fixed = fixed[2]
-                P.Param.Sigma.Fixed = fixed[4]
-                P.Param.Epsilon.Fixed = fixed[5]
                 ForceField.append(P)
 
     if IsCharged:
