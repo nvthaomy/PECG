@@ -38,7 +38,7 @@ def getMap(traj, top, nameMap):
             
     return AAatomId, CGatomTypes, AAres, Mass1List 
 
-def convertTraj(traj, top, lengthScale = 1., stride = 1, outTrajExt = '.lammpstrj'):
+def convertTraj(traj, top, lengthScale = 1., stride = 1, start_frame=0, outTrajExt = '.lammpstrj'):
     """convert trajectory to a specified format and scale box with lengthScale"""
     import mdtraj as md
     import os,shutil
@@ -46,7 +46,9 @@ def convertTraj(traj, top, lengthScale = 1., stride = 1, outTrajExt = '.lammpstr
     cwd = os.getcwd()
     outTraj = traj.split('/')[-1]
     outTraj = '.'.join(outTraj.split('.')[:-1]) + outTrajExt
-    traj = md.load(traj, top = top, stride = stride)
+    traj0 = md.load(traj, top = top)
+    traj = traj0[start_frame:]
+    traj = traj[::stride]
     if lengthScale != 1.:
         print('Scaling positions and box size by 1/{}'.format(lengthScale))
     traj.xyz /= lengthScale
