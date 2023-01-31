@@ -59,7 +59,7 @@ def convertTraj(traj, top, lengthScale = 1., stride = 1, start_frame=0, outTrajE
     outTraj = os.path.join(cwd,outTraj)
     return outTraj
 
-def mapTraj(traj, top, nameMap, lengthScale, stride=1):
+def mapTraj(traj, top, nameMap, lengthScale, stride=1, start_frame=0):
     import sim
     """ CGatomTypes: 1 by n list of CG atom types
         AAatomID: n by x list of indices of AA atoms in CG beads
@@ -77,7 +77,7 @@ def mapTraj(traj, top, nameMap, lengthScale, stride=1):
         Map += [this_Map]
     
     print("\n ===== Converting AA traj to lammpstrj format  =====")
-    traj = convertTraj(traj, top, lengthScale = lengthScale, stride = stride, outTrajExt = '.lammpstrj')
+    traj = convertTraj(traj, top, lengthScale = lengthScale, stride = stride, start_frame=start_frame, outTrajExt = '.lammpstrj')
     outTraj = traj.split('.lammpstrj')[0] + '_mapped.lammpstrj.gz'    
     # ===== read AA traj =====
     print("\n ===== Reading scaled AA Traj =====")
