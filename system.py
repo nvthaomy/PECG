@@ -32,14 +32,15 @@ def CreateWorld(UniqueCGatomTypes, UniqueMolTypes, charges, elements, RLength_di
         MolTypes.append(MolType)
     print('MolTypes in World: {}'.format(MolTypes))
     #create bonds between monomer pairs
+    MaxN = max([len(MolType) for MolType in MolTypes])
     for i,MolType in enumerate(MolTypes):
         NMon = NMons[i]        
-        COMPos = [[0.,0.,0.]] # assume linear molecules
+        COMPos = np.zeros((MaxN,3)) # assume linear molecules
         for bond_index in range(0, NMon-1):
             if MolType.Name in RLength_dict.keys():
-                print('Add rigid bond ', RLength_dict[MolType.Name][bond_index])
+                print('Add rigid bond for {}'.format(MolType.Name), RLength_dict[MolType.Name][bond_index])
                 MolType.Bond(bond_index, bond_index+1, RLength = RLength_dict[MolType.Name][bond_index])        
-                COMPos.append(np.array(COMPos[-1]) + np.array([RLength_dict[MolType.Name][bond_index], 0., 0.]))
+                COMPos[bond_index+1] = np.array(COMPos[bond_index]) + np.array([RLength_dict[MolType.Name][bond_index], 0., 0.])
             else:
                 MolType.Bond(bond_index, bond_index+1)
         if MolType.Name in RLength_dict.keys():
