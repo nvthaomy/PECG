@@ -37,16 +37,14 @@ def CreateForceField(Sys, IsCharged, AtomTypes, NGaussDicts, LJGaussParams, IsFi
     for (atom1name,atom2name), params in sorted(BondParams.items()):
         print('Adding {}'.format(params[2]))
         if not atom1name == 'All' and not atom2name == 'All':
-            atom1 = AtomTypes[atom1name]
-            atom2 = AtomTypes[atom2name]
-            try:
-                atom1 = AtomTypes[atom1name]
-            except:
+            if type(atom1name) is tuple:
                 atom1 = [AtomTypes[x] for x in atom1name]
-            try:
-                atom2 = AtomTypes[atom2name]
-            except:
+            else:
+                atom1 = AtomTypes[atom1name]
+            if type(atom2name) is tuple:
                 atom2 = [AtomTypes[x] for x in atom2name]
+            else:
+                atom2 = AtomTypes[atom2name]
             Filter = sim.atomselect.PolyFilter(Filters = [atom1, atom2], Bonded = True)
         else:
             Filter = sim.atomselect.BondPairs

@@ -148,7 +148,8 @@ def CreateSystem(SysName, World, BoxL, MolNames, NMolsDict,  IsFixedCharge, Temp
         Int.Method.Thermostat = Int.Method.ThermostatLangevin
         Int.Method.LangevinGamma = IntParams['LangevinGamma']
     elif IntParams['ensemble'] == 'NPT':
-        Int.Method.Thermostat = Int.Method.ThermostatNoseHoover
+        Int.Method.Thermostat = Int.Method.ThermostatLangevin
+        Int.Method.LangevinGamma = IntParams['LangevinGamma']
         Int.Method.Barostat = Int.Method.BarostatMonteCarlo  
     
     return Sys,measureRgs 

@@ -59,11 +59,14 @@ def convertTraj(traj, top, lengthScale = 1., stride = 1, start_frame=0, outTrajE
     outTraj = os.path.join(cwd,outTraj)
     return outTraj
 
-def mapTraj(traj, top, nameMap, lengthScale, stride=1, start_frame=0):
+def mapTraj(traj, top, nameMap, lengthScale, stride=1, start_frame=0, outTrajExt='.lammpstrj'):
     import sim
     """ CGatomTypes: 1 by n list of CG atom types
         AAatomID: n by x list of indices of AA atoms in CG beads
         lengthScale (nanometer): divide positions and box dimensions by this scale, for conversion between real and dimensionless units"""
+
+    assert outTrajExt in ['.lammpstrj','.pdb'] # only allow these extensions
+
     AAatomId, CGatomTypes, AAres, Mass1List = getMap(traj, top, nameMap)
     AtomTypes, counts = np.unique(CGatomTypes, return_counts = True)
     # ===== create mapped object =====
@@ -77,8 +80,11 @@ def mapTraj(traj, top, nameMap, lengthScale, stride=1, start_frame=0):
         Map += [this_Map]
     
     print("\n ===== Converting AA traj to lammpstrj format  =====")
-    traj = convertTraj(traj, top, lengthScale = lengthScale, stride = stride, start_frame=start_frame, outTrajExt = '.lammpstrj')
-    outTraj = traj.split('.lammpstrj')[0] + '_mapped.lammpstrj.gz'    
+    traj = convertTraj(traj, top, lengthScale = lengthScale, stride = stride, start_frame=start_frame, outTrajExt='.lammpstrj')
+    if outTrajExt=='.lammpstrj':
+        outTraj = traj.split('.lammpstrj')[0] + '_mapped.lammpstrj.gz'    
+    elif outTrajExt=='.pdb':
+        outTraj = traj.split('.lammpstrj')[0] + '_mapped.pdb'
     # ===== read AA traj =====
     print("\n ===== Reading scaled AA Traj =====")
     Trj = pickleTraj(traj)
@@ -91,7 +97,10 @@ def mapTraj(traj, top, nameMap, lengthScale, stride=1, start_frame=0):
     print('mapped traj name {}'.format(outTraj)) 
     # ===== convert to lammps =====
     print("\n ===== Converting to LAMMPS =====")
-    sim.traj.base.Convert(MappedTrj, sim.traj.LammpsWrite, FileName = outTraj, Verbose = True)    
+    if outTrajExt=='.lammpstrj':
+        sim.traj.base.Convert(MappedTrj, sim.traj.LammpsWrite, FileName = outTraj, Verbose = True)    
+    elif outTrajExt=='.pdb':
+        sim.traj.base.Convert(MappedTrj, sim.traj.PdbWrite, FileName = outTraj, Verbose = True)
     print("\nCG Atom\tcount:")
     for i, atom in enumerate(AtomTypes):
         print('%s\t%i'%(atom,counts[i]))

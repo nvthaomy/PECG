@@ -27,7 +27,7 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
             Element = None
         AtomType = sim.chem.AtomType(AtomName, Mass = 1., Charge = Charge, Element=Element)
         AtomTypes.update({AtomName:AtomType})
-    
+    print('AtomTypes in World: {}'.format(AtomTypes)) 
     #make dictionary to keep track of index use to set NMol
     nextNMolId = {}
     for MolName in MolNames:
@@ -45,7 +45,7 @@ def CreateSystem(SysName, BoxL, UniqueCGatomTypes, MolNames, MolTypesDict, NMols
                 AtomsInMol.append(AtomTypes[AtomName])
             MolType = sim.chem.MolType(MolName, AtomsInMol)
             MolTypes.append(MolType)
-    print('MolTypes {}'.format(MolTypes)) 
+    print('MolTypes in World {}'.format(MolTypes)) 
     World = sim.chem.World(MolTypes, Dim = 3, Units = Units)
 
     #create bonds between monomer pairs
